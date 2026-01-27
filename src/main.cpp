@@ -6,49 +6,54 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/01/14 17:29:14 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/01/20 22:45:48 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/01/27 22:35:15 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include <vector>
-#include <list>
+#include "../includes/Server.hpp"
+#include "../includes/Lexer.hpp"
 #include <iostream>
-#include <algorithm>
-#include "../includes/PmergeMe.hpp"
 
+void open_and_validate_file(char *filename, std::ifstream	&conf_file)
+{
+	conf_file.open(filename, std::ios::in | std::ios::binary);
+	if (conf_file.fail())
+	{
+		std::cerr << "Error: could not open file." << std::endl;
+		exit(EXIT_FAILURE);
+	}
+}
+
+std::string config_file_to_string(std::ifstream &conf_file)
+{
+	std::string	line;
+	std::string	res;
+
+	while (std::getline(conf_file, line))
+	{
+		res.append(line);
+		res.append("\n");
+	}
+	return (res);
+}
 
 int main(int argc, char* argv[])
 {
-		// input validation
-	if (argc == 1)
-	{
-		std::cerr << "Error\n";
+	std::ifstream	conf_file;
+	std::string		conf_str;
+
+	// input validation
+	if (argc != 2) {
+		std::cerr << "Error: must pass as argument one configuration file\n";
 		return 0;
 	}
+
+	open_and_validate_file(argv[1], conf_file);
+	conf_str = config_file_to_string(conf_file);
+	conf_file.close();
+
+	std::cout <<conf_str << "\n";
+	Lexer lexer(conf_str);
+	std::cout << lexer;
 	
-	PmergeMe a(argc, argv);
-
-	std::cout << "[Vector section]\n";
-	for (int i = 0; i < static_cast<int>(a._vec.size()); i++)
-	{
-		std::cout << a._vec[i] <<"\n";
-	}
-	std::cout << "[deque section]\n";
-	for (int i = 0; i < static_cast<int>(a._deque.size()); i++)
-	{
-		std::cout << a._deque[i] <<"\n";
-	}
-	a.merge_insertion_sort_vec(1);
-	a.merge_insertion_sort_deque(1);
-
-	std::cout << "[VECTOR Section]\n";
-	for (size_t i = 0; i < a._vec.size(); i++)
-	{
-		std::cout << i << "): " << a._vec.at(i) << std::endl;
-	}
-	std::cout << "[DEQUE Section]\n";
-	for (size_t i = 0; i < a._deque.size(); i++)
-	{
-		std::cout << i << "): " << a._deque.at(i) << std::endl;
-	}
 }
