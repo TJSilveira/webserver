@@ -35,9 +35,9 @@ public:
 	static std::vector<std::string> context;
 
 	std::string root;
-	std::vector<std::string> index;
 	std::unordered_map<int, std::string> error_page;
-	size_t client_max_body_size;
+	size_t client_max_body_size; 
+	std::vector<std::string> index;
 	bool autoindex;
 };
 
