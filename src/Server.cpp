@@ -32,7 +32,7 @@ std::vector<std::string>  Server::context(context_array, context_array +  sizeof
 
 
 // Constructors
-Server::Server(void)
+Server::Server(Parser &parser)
 {
 	
 }

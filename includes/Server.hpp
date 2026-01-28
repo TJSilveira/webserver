@@ -20,15 +20,25 @@
 #include <iostream>
 #include <limits>
 #include <vector>
+#include <map>
+#include <unordered_map>
+
+#include "../includes/Parser.hpp"
 
 class Server {
 private:
 public:
-	Server();
+	Server(Parser &parser);
 	~Server();
 
 	static std::vector<std::string> directives;
 	static std::vector<std::string> context;
+
+	std::string root;
+	std::vector<std::string> index;
+	std::unordered_map<int, std::string> error_page;
+	size_t client_max_body_size;
+	bool autoindex;
 };
 
 #endif
