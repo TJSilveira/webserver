@@ -1,0 +1,10 @@
+Tiago -> Parsing the configuration file
+
+Next steps:
+with the parsed structure, initialize the classes
+Creating server loop
+Create HTTP Request Parser
+Create HTTP response Builder
+Create the static content
+Create the error pages
+Add CGI

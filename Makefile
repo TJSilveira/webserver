@@ -7,7 +7,12 @@ CXXFLAGS	= -Wall -Wextra -Werror -std=c++98 -fsanitize=address
 SRC_DIR			= ./src/
 OBJS_DIR		= ./objs/
 
-SRC_FILES		=	main.cpp Lexer.cpp Server.cpp
+SRC_FILES		=	main.cpp \
+					Lexer.cpp \
+					Parser.cpp \
+					Server.cpp \
+					VirtualServer.cpp \
+					Location.cpp
 
 
 OBJS_FILES			= $(SRC_FILES:.cpp=.o)

@@ -12,6 +12,7 @@
 
 #include "../includes/Server.hpp"
 #include "../includes/Lexer.hpp"
+#include "../includes/Parser.hpp"
 #include <iostream>
 
 void open_and_validate_file(char *filename, std::ifstream	&conf_file)
@@ -52,8 +53,15 @@ int main(int argc, char* argv[])
 	conf_str = config_file_to_string(conf_file);
 	conf_file.close();
 
+	std::cout << "========== [Lexer] ==========\n\n";
+
 	std::cout <<conf_str << "\n";
 	Lexer lexer(conf_str);
 	std::cout << lexer;
 	
+	std::cout << "========== [Parser] ==========\n\n";
+	Parser parser(lexer);
+
+	std::cout << parser;
+
 }

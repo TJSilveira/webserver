@@ -28,8 +28,7 @@ public:
 	~Server();
 
 	static std::vector<std::string> directives;
+	static std::vector<std::string> context;
 };
-
-
 
 #endif

@@ -52,10 +52,12 @@ Lexer::Lexer(std::string &config_str)
 		if (config_str[i] == '#')
 		{
 			i++;
-			if (config_str[i] && config_str[i] != '\n')
+			while (config_str[i] && config_str[i] != '\n')
+			{
 				i++;
-			else if(config_str[i] && config_str[i] == '\n')
-				_token_list.push_back(token("\n", Whitespace));
+			}			
+			// if(config_str[i] && config_str[i] == '\n')
+			// 	_token_list.push_back(token("\n", Whitespace));
 		}
 		else if (config_str[i] == '{')
 			_token_list.push_back(token("{", OpenBrk));
@@ -64,7 +66,8 @@ Lexer::Lexer(std::string &config_str)
 		else if (config_str[i] == ';')
 			_token_list.push_back(token(";", SemiCol));
 		else if (std::isspace(config_str[i]))
-			_token_list.push_back(token(" ", Whitespace));
+			continue;
+			// _token_list.push_back(token(" ", Whitespace));
 		else if (config_str[i] == '\"'){
 			std::string temp_str;
 			temp_str += "\"";
@@ -89,7 +92,9 @@ Lexer::Lexer(std::string &config_str)
 			}
 			i--;
 			if (std::find(Server::directives.begin(), Server::directives.end(), temp_str) != Server::directives.end())
-				_token_list.push_back(token(temp_str, KeywordTok));
+				_token_list.push_back(token(temp_str, DirectTok));
+			else if (std::find(Server::context.begin(), Server::context.end(), temp_str) != Server::context.end())
+				_token_list.push_back(token(temp_str, ContextTok));
 			else
 				_token_list.push_back(token(temp_str, ParamTok));
 		}
