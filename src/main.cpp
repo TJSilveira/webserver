@@ -6,12 +6,13 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/01/14 17:29:14 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/01/27 22:35:15 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/03 19:22:16 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../includes/Server.hpp"
 #include "../includes/Lexer.hpp"
+#include "../includes/Parser.hpp"
 #include <iostream>
 
 void open_and_validate_file(char *filename, std::ifstream	&conf_file)
@@ -24,17 +25,10 @@ void open_and_validate_file(char *filename, std::ifstream	&conf_file)
 	}
 }
 
-std::string config_file_to_string(std::ifstream &conf_file)
+std::string file_to_string(std::ifstream &file)
 {
-	std::string	line;
-	std::string	res;
-
-	while (std::getline(conf_file, line))
-	{
-		res.append(line);
-		res.append("\n");
-	}
-	return (res);
+	return (std::string(std::istreambuf_iterator<char>(file),
+						std::istreambuf_iterator<char>()));
 }
 
 int main(int argc, char* argv[])
@@ -49,11 +43,21 @@ int main(int argc, char* argv[])
 	}
 
 	open_and_validate_file(argv[1], conf_file);
-	conf_str = config_file_to_string(conf_file);
+	conf_str = file_to_string(conf_file);
 	conf_file.close();
+
+	std::cout << "========== [Lexer] ==========\n\n";
 
 	std::cout <<conf_str << "\n";
 	Lexer lexer(conf_str);
 	std::cout << lexer;
 	
+	std::cout << "========== [Parser] ==========\n\n";
+	Parser parser(lexer);
+
+	std::cout << parser;
+
+	Server main_server(parser.server);
+
+	std::cout << main_server;
 }

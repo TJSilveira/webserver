@@ -20,16 +20,29 @@
 #include <iostream>
 #include <limits>
 #include <vector>
+#include <map>
+
+#include "../includes/Parser.hpp"
+#include "../includes/ConfigError.hpp"
+#include "../includes/VirtualServer.hpp"
 
 class Server {
 private:
 public:
-	Server();
+	Server(t_server &server_config);
 	~Server();
 
 	static std::vector<std::string> directives;
+	static std::vector<std::string> context;
+
+	std::vector<VirtualServer> virtual_servers;
+	std::string root;
+	std::map<int, std::string> error_page;
+	size_t client_max_body_size;
+	std::vector<std::string> index;
+	bool autoindex;
 };
 
-
+std::ostream& operator<<(std::ostream& os, const Server& s);
 
 #endif

@@ -6,7 +6,8 @@
 #include <iostream>
 
 enum TokenType{
-	KeywordTok,
+	ContextTok,
+	DirectTok,
 	ParamTok,
 	OpenBrk,
 	CloseBrk,
