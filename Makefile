@@ -13,7 +13,8 @@ SRC_FILES		=	main.cpp \
 					Server.cpp \
 					VirtualServer.cpp \
 					Location.cpp \
-					utils.cpp
+					utils.cpp \
+					socket.cpp
 
 
 OBJS_FILES			= $(SRC_FILES:.cpp=.o)

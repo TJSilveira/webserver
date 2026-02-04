@@ -6,7 +6,7 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/01/14 17:29:14 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/03 19:22:16 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/04 17:59:11 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,6 +14,17 @@
 #include "../includes/Lexer.hpp"
 #include "../includes/Parser.hpp"
 #include <iostream>
+
+// For socket
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <netdb.h>
+#include <sys/types.h> 
+#include <sys/socket.h>
+#include <netinet/in.h>
+
 
 void open_and_validate_file(char *filename, std::ifstream	&conf_file)
 {
@@ -60,4 +71,9 @@ int main(int argc, char* argv[])
 	Server main_server(parser.server);
 
 	std::cout << main_server;
+
+	main_server.init();
+	main_server.run_server();
+
+	return 0;
 }

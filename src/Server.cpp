@@ -4,6 +4,7 @@
 #include <ostream>
 #include <vector>
 
+
 std::string directives_array[] = {
 	"listen",
 	"server_name",
@@ -90,6 +91,81 @@ Server::Server(t_server &server_config):
 // Destructor
 Server::~Server(void) {}
 
+void Server::init()
+{
+	std::set<int> bound_ports;
+
+	for (size_t i = 0; i < virtual_servers.size(); i++)
+	{
+		int port = virtual_servers.at(i).listen;
+
+		if(bound_ports.find(port) == bound_ports.end())
+		{
+			int fd = create_listening_socket(port, "0.0.0.0");
+			listening_sockfds.push_back(fd);
+			bound_ports.insert(port);
+
+			std::cout << "Successfully bound port: " << port << " with fd: " << fd << std::endl;
+		}
+		else
+		{
+			perror("Port already in use");
+			exit(EXIT_FAILURE);
+		}
+	}
+	std::cout << "Server waiting for connections...\n";
+}
+
+void	Server::run_server()
+{
+	struct epoll_event ev, events[MAX_EVENTS];
+	int listen_sock, conn_sock, nfds, epollfd;
+
+	epollfd = epoll_create1(0);
+	if (epollfd == -1) {
+		perror("epoll_create1");
+		exit(EXIT_FAILURE);
+	}
+
+	ev.events = EPOLLIN;
+
+	for (size_t i = 0; i < listening_sockfds.size(); i++)
+	{
+		ev.data.fd = listening_sockfds.at(i);
+		if (epoll_ctl(epollfd, EPOLL_CTL_ADD, listening_sockfds.at(i), &ev) == -1) {
+			perror("epoll_ctl: listen_sock");
+			exit(EXIT_FAILURE);
+		}
+	}
+
+	for (;;) {
+		nfds = epoll_wait(epollfd, events, MAX_EVENTS, -1);
+		if (nfds == -1) {
+			perror("epoll_wait");
+			exit(EXIT_FAILURE);
+		}
+
+		for (int n = 0; n < nfds; ++n) {
+			std::vector<int>::iterator it_listen_sock = std::find(listening_sockfds.begin(), listening_sockfds.end(), events[n].data.fd);
+			if (it_listen_sock != listening_sockfds.end()){
+				listen_sock = *it_listen_sock;
+				conn_sock = accept_conn_socket(listen_sock);
+				ev.events = EPOLLIN | EPOLLET;
+				ev.data.fd = conn_sock;
+				if (epoll_ctl(epollfd, EPOLL_CTL_ADD, conn_sock, &ev) == -1) {
+					perror("epoll_ctl: conn_sock");
+					exit(EXIT_FAILURE);
+				}
+			} else {
+				// TODO: Need to have an handler for connection sockets that require attention
+				// do_use_fd(events[n].data.fd);
+				std::cout << "Connection socket that needs attention: " << events[n].data.fd << std::endl;
+			}
+		}
+	}
+}
+
+// Operator overload
 std::ostream& operator<<(std::ostream& os, const Server& s) {
 	os << "|||||||||| MAIN SERVER CONFIG ||||||||||\n";
 	os << "Root: " << s.root << "\n";
@@ -114,3 +190,4 @@ std::ostream& operator<<(std::ostream& os, const Server& s) {
 	os << "||||||||||||||||||||||||||||||||||||||||\n";
 	return os;
 }
+

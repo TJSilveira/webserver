@@ -20,11 +20,17 @@
 #include <iostream>
 #include <limits>
 #include <vector>
+#include <set>
 #include <map>
+#include <sys/epoll.h>
 
 #include "../includes/Parser.hpp"
 #include "../includes/ConfigError.hpp"
 #include "../includes/VirtualServer.hpp"
+#include "../includes/socket.hpp"
+
+#define MAX_EVENTS 128
+
 
 class Server {
 private:
@@ -32,10 +38,19 @@ public:
 	Server(t_server &server_config);
 	~Server();
 
-	static std::vector<std::string> directives;
-	static std::vector<std::string> context;
+	void	init();
+	void	run_server();
 
+	static std::vector<std::string> directives;
+	static std::vector<std::string> context;	
+	
+	// Virtual Servers
 	std::vector<VirtualServer> virtual_servers;
+
+	// Listening sockets
+	std::vector<int> listening_sockfds;
+
+	// Server Configs
 	std::string root;
 	std::map<int, std::string> error_page;
 	size_t client_max_body_size;

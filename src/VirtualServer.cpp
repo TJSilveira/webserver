@@ -77,7 +77,13 @@ VirtualServer::VirtualServer(const t_virtual_server &vir_serv_config, const Serv
 // Destructor
 VirtualServer::~VirtualServer(void) {}
 
+void	VirtualServer::init_listen_socket()
+{
 
+}
+
+
+// Operator overload
 std::ostream& operator<<(std::ostream& os, const VirtualServer& vs) {
     os << "######## Virtual Server ########\n";
     os << "Server Name: " << vs.server_name << "\n";

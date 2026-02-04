@@ -17,7 +17,12 @@ public:
 	VirtualServer(const t_virtual_server &vir_serv_config, const Server &server);
 	~VirtualServer();
 
+	void	init_listen_socket();
+
+	// Locations
 	std::vector<Location> locations;
+
+	// Configs
 	std::string	server_name;
 	std::string root;
 	int	listen;
