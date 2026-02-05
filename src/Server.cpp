@@ -4,6 +4,8 @@
 #include <ostream>
 #include <vector>
 
+#define BUFFER_SIZE 8192
+
 
 std::string directives_array[] = {
 	"listen",
@@ -30,7 +32,6 @@ std::string context_array[] = {
 };
 
 std::vector<std::string>  Server::context(context_array, context_array +  sizeof(context_array) / sizeof(std::string));
-
 
 // Constructors
 Server::Server(t_server &server_config):
@@ -102,9 +103,8 @@ void Server::init()
 		if(bound_ports.find(port) == bound_ports.end())
 		{
 			int fd = create_listening_socket(port, "0.0.0.0");
-			listening_sockfds.push_back(fd);
+			listening_sockfds.insert(std::make_pair(fd, &virtual_servers.at(i)));
 			bound_ports.insert(port);
-
 			std::cout << "Successfully bound port: " << port << " with fd: " << fd << std::endl;
 		}
 		else
@@ -129,10 +129,10 @@ void	Server::run_server()
 
 	ev.events = EPOLLIN;
 
-	for (size_t i = 0; i < listening_sockfds.size(); i++)
+	for (std::map<int, const VirtualServer*>::iterator it = listening_sockfds.begin(); it != listening_sockfds.end(); it++)
 	{
-		ev.data.fd = listening_sockfds.at(i);
-		if (epoll_ctl(epollfd, EPOLL_CTL_ADD, listening_sockfds.at(i), &ev) == -1) {
+		ev.data.fd = it->first;
+		if (epoll_ctl(epollfd, EPOLL_CTL_ADD, it->first, &ev) == -1) {
 			perror("epoll_ctl: listen_sock");
 			exit(EXIT_FAILURE);
 		}
@@ -146,9 +146,9 @@ void	Server::run_server()
 		}
 
 		for (int n = 0; n < nfds; ++n) {
-			std::vector<int>::iterator it_listen_sock = std::find(listening_sockfds.begin(), listening_sockfds.end(), events[n].data.fd);
+			std::map<int, const VirtualServer*>::iterator it_listen_sock = listening_sockfds.find(events[n].data.fd);
 			if (it_listen_sock != listening_sockfds.end()){
-				listen_sock = *it_listen_sock;
+				listen_sock = it_listen_sock->first;
 				conn_sock = accept_conn_socket(listen_sock);
 				ev.events = EPOLLIN | EPOLLET;
 				ev.data.fd = conn_sock;
@@ -156,9 +156,44 @@ void	Server::run_server()
 					perror("epoll_ctl: conn_sock");
 					exit(EXIT_FAILURE);
 				}
+				active_connections.insert(std::make_pair(conn_sock, Connection(conn_sock, it_listen_sock->second)));
 			} else {
 				// TODO: Need to have an handler for connection sockets that require attention
 				// do_use_fd(events[n].data.fd);
+				int curr_socket = events[n].data.fd;
+				Connection &curr_connection = active_connections.at(curr_socket);
+				// Read buffer
+				if(events[n].events & EPOLLIN)
+				{
+					std::cout << "Inside the read\n";
+					// instanciate current transaction if does not exist yet
+					if (curr_connection.current_transaction == NULL)
+						curr_connection.current_transaction = new HttpTransaction(curr_connection.server_config);
+					
+					std::string buffer;
+					buffer.resize(BUFFER_SIZE);
+					ssize_t bytes_received = recv(curr_socket, &buffer[0], BUFFER_SIZE, 0);
+					std::cout << "This is the buffer: " << buffer << std::endl; 
+					if (bytes_received > 0)
+					{
+						buffer.resize(bytes_received);
+						curr_connection.current_transaction->parse(buffer);
+					}
+					else if(bytes_received == 0) // Connection closed by the client
+					{
+						// TODO: Add closing method to connection
+					}
+					else if (bytes_received < 0 && ((events[n].events & EAGAIN) || (events[n].events & EWOULDBLOCK)))
+					{
+						// TODO: Check what to do in this situation. Apperently it is simplu stating that there is no more data available
+					}
+					else
+					{
+						// TODO: Actual error. Check what to do in this situation
+					}
+					std::cout << "At the end of read\n";
+					std::cout << curr_connection.current_transaction->request;
+				} 
 				std::cout << "Connection socket that needs attention: " << events[n].data.fd << std::endl;
 			}
 		}

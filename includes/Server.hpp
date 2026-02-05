@@ -28,6 +28,7 @@
 #include "../includes/ConfigError.hpp"
 #include "../includes/VirtualServer.hpp"
 #include "../includes/socket.hpp"
+#include "../includes/Connection.hpp"
 
 #define MAX_EVENTS 128
 
@@ -42,13 +43,14 @@ public:
 	void	run_server();
 
 	static std::vector<std::string> directives;
-	static std::vector<std::string> context;	
+	static std::vector<std::string> context;
 	
 	// Virtual Servers
 	std::vector<VirtualServer> virtual_servers;
 
 	// Listening sockets
-	std::vector<int> listening_sockfds;
+	std::map<int, const VirtualServer*> listening_sockfds;
+	std::map<int, Connection>	active_connections;
 
 	// Server Configs
 	std::string root;

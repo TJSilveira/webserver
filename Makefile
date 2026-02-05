@@ -14,7 +14,11 @@ SRC_FILES		=	main.cpp \
 					VirtualServer.cpp \
 					Location.cpp \
 					utils.cpp \
-					socket.cpp
+					socket.cpp \
+					Connection.cpp \
+					HttpRequest.cpp \
+					HttpResponse.cpp \
+					HttpTransaction.cpp
 
 
 OBJS_FILES			= $(SRC_FILES:.cpp=.o)
