@@ -4,6 +4,7 @@
 #include "HttpResponse.hpp"
 #include "HttpRequest.hpp"
 #include "VirtualServer.hpp"
+#include "socket.hpp"
 
 class HttpTransaction
 {
@@ -14,12 +15,12 @@ public:
 	~HttpTransaction();
 
 	void	parse(const std::string &raw);
+	void	process_request(int epollfd, int curr_socket);
+	void	send_response(int curr_socket);
 
 	HttpRequest		request;
 	HttpResponse	response;
 	const VirtualServer	*vir_server;
-
-	std::string		write_buffer;
 
 	enum State {
 		PARSING_REQ_METHOD,
@@ -35,7 +36,8 @@ public:
 		PARSING_BODY,
 		PROCESSING,
 		WAITING_CGI,
-		SENDING
+		SENDING,
+		COMPLETE
 	};
 	State			state;
 };

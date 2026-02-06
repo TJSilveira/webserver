@@ -117,16 +117,73 @@ void HttpTransaction::parse(const std::string &raw)
 			break;
 		case PARSING_HEADER_FINAL_CR:
 			if (raw.at(i) == '\n')
-				this->state = PARSING_BODY;
+			{
+				if(this->request.headers.count("Content-Length") == 0)
+					this->state = PROCESSING;
+				else
+					this->state = PARSING_BODY;
+			}
 			else
 			{
 				// Add 400 error
 			}
 			break;
 		case PARSING_BODY:
+			if (this->request.headers.count("Content-Length") == 0)
+			{
+				this->state = PROCESSING;
+				break;
+			}
+			else if (this->request.body.size() >= static_cast<size_t>(atoi(this->request.headers.at("Content-Length").c_str())))
+			{
+				// Add 400 error
+			}
 			this->request.body += raw.at(i);
+			if (this->request.body.size() == static_cast<size_t>(atoi(this->request.headers.at("Content-Length").c_str())))
+			{
+				this->state = PROCESSING;
+				break;
+			}
 		default:
 			break;
 		}
 	}
+}
+
+void	HttpTransaction::process_request(int epollfd, int curr_socket)
+{
+	// If the status is not in Processing, there is nothing to process
+	if (state == PROCESSING)
+	{
+		response.build_response();
+		change_socket_epollout(epollfd, curr_socket);
+	}
+}
+
+void	HttpTransaction::send_response(int curr_socket)
+{
+	while (response._bytes_sent < response._response_buffer.size())
+	{
+		size_t	missing_bytes = response._response_buffer.size() - response._bytes_sent;
+
+		size_t current_sent_bytes = send(curr_socket,
+			&response._response_buffer[response._bytes_sent], 
+			missing_bytes, MSG_NOSIGNAL);
+
+		if (current_sent_bytes > 0)
+		{
+			response._bytes_sent += current_sent_bytes;
+		}
+		else if (current_sent_bytes < 0 && ((errno == EAGAIN) || (errno == EWOULDBLOCK)))
+		{
+			return;
+		}
+		else
+		{
+			// Fatal error
+			std::cout << "Send error\n";
+			return;
+		}
+	}
+	this->state = COMPLETE;
 }

@@ -80,3 +80,36 @@ int	setnonblocking(int sock)
 	}
 	return 0;
 }
+
+void add_socket_epoll(int epollfd, int conn_sock)
+{
+	struct epoll_event ev;
+	ev.events = EPOLLIN | EPOLLET;
+	ev.data.fd = conn_sock;
+	if (epoll_ctl(epollfd, EPOLL_CTL_ADD, conn_sock, &ev) == -1) {
+		perror("epoll_ctl: problem connecting socket to epoll");
+		exit(EXIT_FAILURE);
+	}
+}
+
+void remove_socket_epoll(int epollfd, int conn_sock)
+{
+	struct epoll_event ev;
+	ev.events = EPOLLIN | EPOLLET;
+	ev.data.fd = conn_sock;
+	if (epoll_ctl(epollfd, EPOLL_CTL_DEL, conn_sock, &ev) == -1) {
+		perror("epoll_ctl: problem deleting socket to epoll");
+		exit(EXIT_FAILURE);
+	}
+}
+
+void change_socket_epollout(int epollfd, int conn_sock)
+{
+	struct epoll_event ev;
+	ev.events = EPOLLOUT | EPOLLET;
+	ev.data.fd = conn_sock;
+	if (epoll_ctl(epollfd, EPOLL_CTL_MOD, conn_sock, &ev) == -1) {
+		perror("epoll_ctl: problem putting socket ready to write epoll");
+		exit(EXIT_FAILURE);
+	}
+}

@@ -41,6 +41,11 @@ public:
 
 	void	init();
 	void	run_server();
+	void	read_full_recv(int epollfd, int curr_socket, Connection &curr_connection);
+
+
+
+
 
 	static std::vector<std::string> directives;
 	static std::vector<std::string> context;
