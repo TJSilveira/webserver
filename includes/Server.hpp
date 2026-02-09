@@ -41,7 +41,7 @@ public:
 
 	void	init();
 	void	run_server();
-	void	read_full_recv(int epollfd, int curr_socket, Connection &curr_connection);
+	int	read_full_recv(int curr_socket, Connection &curr_connection);
 
 
 

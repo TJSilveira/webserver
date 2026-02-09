@@ -8,17 +8,17 @@ SRC_DIR			= ./src/
 OBJS_DIR		= ./objs/
 
 SRC_FILES		=	main.cpp \
-					Lexer.cpp \
-					Parser.cpp \
-					Server.cpp \
-					VirtualServer.cpp \
-					Location.cpp \
-					utils.cpp \
-					socket.cpp \
 					Connection.cpp \
 					HttpRequest.cpp \
 					HttpResponse.cpp \
-					HttpTransaction.cpp
+					HttpTransaction.cpp \
+					Lexer.cpp \
+					Location.cpp \
+					Parser.cpp \
+					Server.cpp \
+					socket.cpp \
+					utils.cpp \
+					VirtualServer.cpp
 
 
 OBJS_FILES			= $(SRC_FILES:.cpp=.o)

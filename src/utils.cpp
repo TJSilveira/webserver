@@ -6,7 +6,7 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/01/14 17:29:14 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/06 14:19:01 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/07 18:13:35 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -38,10 +38,3 @@ int	extract_and_validate_str_to_int(std::string str)
 	return (static_cast<int> (num));
 }
 
-template<typename T>
-std::string to_string(T value)
-{
-	std::stringstream ss;
-	ss << value;
-	return ss.str();
-}

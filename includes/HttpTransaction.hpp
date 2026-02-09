@@ -5,11 +5,17 @@
 #include "HttpRequest.hpp"
 #include "VirtualServer.hpp"
 #include "socket.hpp"
+#include "utils.hpp"
+
+#include <iostream>
+#include <fstream>
 
 class HttpTransaction
 {
 private:
-	/* data */
+	std::string temp;
+    std::string temp_key;
+    std::string temp_value;
 public:
 	HttpTransaction(const VirtualServer *vir_server);
 	~HttpTransaction();
@@ -17,6 +23,8 @@ public:
 	void	parse(const std::string &raw);
 	void	process_request(int epollfd, int curr_socket);
 	void	send_response(int curr_socket);
+	void	build_error_reponse(int error_code);
+	std::string	generate_error_page(int error_code);
 
 	HttpRequest		request;
 	HttpResponse	response;
@@ -34,6 +42,7 @@ public:
 		PARSING_HEADER_DONE,
 		PARSING_HEADER_FINAL_CR,
 		PARSING_BODY,
+		PARSING_ERROR,
 		PROCESSING,
 		WAITING_CGI,
 		SENDING,

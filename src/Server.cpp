@@ -139,47 +139,63 @@ void	Server::run_server()
 	}
 
 	// TODO: Add limits to the number of sockets that are checked by epoll
-	for (;;) {
+	while(true) {
 		nfds = epoll_wait(epollfd, events, MAX_EVENTS, -1);
 		if (nfds == -1) {
 			perror("epoll_wait");
 			exit(EXIT_FAILURE);
 		}
 
-		for (int n = 0; n < nfds; ++n) {
-			std::map<int, const VirtualServer*>::iterator it_listen_sock = listening_sockfds.find(events[n].data.fd);
+		for (int i = 0; i < nfds; ++i) {
+			std::map<int, const VirtualServer*>::iterator it_listen_sock = listening_sockfds.find(events[i].data.fd);
 			if (it_listen_sock != listening_sockfds.end()){
 				listen_sock = it_listen_sock->first;
 				conn_sock = accept_conn_socket(listen_sock);
 				add_socket_epoll(epollfd, conn_sock);
 				active_connections.insert(std::make_pair(conn_sock, Connection(conn_sock, it_listen_sock->second)));
 			} else {
-				// TODO: Need to have an handler for connection sockets that require attention
-				// do_use_fd(events[n].data.fd);
-				std::cout << "Connection socket that needs attention: " << events[n].data.fd << std::endl;
-				int curr_socket = events[n].data.fd;
+				std::cout << "Connection socket that needs attention: " << events[i].data.fd << std::endl;
+				int curr_socket = events[i].data.fd;
 				Connection &curr_connection = active_connections.at(curr_socket);
 				// Read buffer
-				if(events[n].events & EPOLLIN)
+				if(events[i].events & EPOLLIN)
 				{
 					std::cout << "Inside the read\n";
 					// instanciate current transaction if does not exist yet
 					if (curr_connection.current_transaction == NULL)
 						curr_connection.current_transaction = new HttpTransaction(curr_connection.server_config);
 					
-					read_full_recv(epollfd, curr_socket, curr_connection);
+					int status = read_full_recv(curr_socket, curr_connection);
+					if(status == -1)
+					{
+						if (curr_connection.current_transaction != NULL)
+							delete curr_connection.current_transaction;
+						remove_socket_epoll(epollfd, curr_socket);
+						active_connections.erase(curr_socket);
+						close(curr_socket);
+						continue;
+					}
 					curr_connection.current_transaction->process_request(epollfd, curr_socket);
 				}
-				else if(events[n].events & EPOLLOUT)
+				if(events[i].events & EPOLLOUT)
 				{
+					if (curr_connection.current_transaction == NULL)
+						continue;
 					curr_connection.current_transaction->send_response(curr_socket);
 					if (curr_connection.current_transaction->state == curr_connection.current_transaction->COMPLETE)
 					{
-						remove_socket_epoll(epollfd, curr_socket);
-						active_connections.erase(curr_socket);
-						curr_connection.close_connection();
 						delete curr_connection.current_transaction;
+						curr_connection.current_transaction = NULL;
+						change_socket_epollin(epollfd, curr_socket);
 					}
+				}
+				if (events[i].events & (EPOLLERR | EPOLLHUP | EPOLLRDHUP))
+				{
+					if (curr_connection.current_transaction != NULL)
+						delete curr_connection.current_transaction;
+					remove_socket_epoll(epollfd, curr_socket);
+					active_connections.erase(curr_socket);
+					close(curr_socket);
 				}
 			}
 		}
@@ -187,7 +203,7 @@ void	Server::run_server()
 }
 
 // TODO: Breakdown the function further
-void Server::read_full_recv(int epollfd, int curr_socket, Connection &curr_connection)
+int Server::read_full_recv(int curr_socket, Connection &curr_connection)
 {
 	std::string buffer;
 	while (true)
@@ -201,29 +217,25 @@ void Server::read_full_recv(int epollfd, int curr_socket, Connection &curr_conne
 			buffer.resize(bytes_received);
 			curr_connection.current_transaction->parse(buffer);
 		}
-		else if(bytes_received == 0) // Connection closed by the client
+		else if(bytes_received == 0) // Client closed write side OR there is nothing more to read
 		{
-			remove_socket_epoll(epollfd, curr_socket);
-			active_connections.erase(curr_socket);
-			curr_connection.close_connection();
-			std::cout << "Connection closed\n";
-			break;
+			return (1);
 		}
 		else if (bytes_received < 0 && ((errno == EAGAIN) || (errno == EWOULDBLOCK)))
 		{
-			std::cout << "Errno break\n";
-			break;
-			// TODO: Check what to do in this situation. Apperently it is simplu stating that there is no more data available
+			std::cout << "Errno Break\n";
+			return (0);
 		}
 		else
 		{
 			// To add the correct exception
 			std::cout << "Else break\n";
-			exit(EXIT_FAILURE);
+			return (-1);
 		}
 	}
 	std::cout << "At the end of read\n";
 	std::cout << curr_connection.current_transaction->request;
+	return (-1);
 }
 
 // Operator overload

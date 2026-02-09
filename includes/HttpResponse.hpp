@@ -3,6 +3,7 @@
 
 #include <string>
 #include <map>
+#include <iostream>
 
 class HttpResponse
 {
@@ -11,6 +12,8 @@ private:
 	int 		_status_code;
 	std::map<std::string, std::string> _headers;
 	std::string _body;
+
+	static std::map<int, std::string> initHttpStatusCodes();
 public:
 	HttpResponse();
 	~HttpResponse();
@@ -20,6 +23,7 @@ public:
 	void	set_status(int code);
 	void	set_body(const std::string& body);
 	void	add_header(const std::string& key, const std::string& value);
+	std::string	get_contentlength_header();
 	void	serialize_response();
 	void	build_response();
 
