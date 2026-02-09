@@ -5,6 +5,9 @@
 #include <vector>
 
 #define BUFFER_SIZE 8192
+#define CLIENT_CLOSE_SOCKET 1
+#define BUFFER_READ 0
+#define READ_ERROR 0
 
 
 std::string directives_array[] = {
@@ -166,13 +169,9 @@ void	Server::run_server()
 						curr_connection.current_transaction = new HttpTransaction(curr_connection.server_config);
 					
 					int status = read_full_recv(curr_socket, curr_connection);
-					if(status == -1)
+					if(status == READ_ERROR)
 					{
-						if (curr_connection.current_transaction != NULL)
-							delete curr_connection.current_transaction;
-						remove_socket_epoll(epollfd, curr_socket);
-						active_connections.erase(curr_socket);
-						close(curr_socket);
+						clean_connection(epollfd, curr_socket, curr_connection);
 						continue;
 					}
 					curr_connection.current_transaction->process_request(epollfd, curr_socket);
@@ -190,13 +189,7 @@ void	Server::run_server()
 					}
 				}
 				if (events[i].events & (EPOLLERR | EPOLLHUP | EPOLLRDHUP))
-				{
-					if (curr_connection.current_transaction != NULL)
-						delete curr_connection.current_transaction;
-					remove_socket_epoll(epollfd, curr_socket);
-					active_connections.erase(curr_socket);
-					close(curr_socket);
-				}
+					clean_connection(epollfd, curr_socket, curr_connection);
 			}
 		}
 	}
@@ -219,23 +212,32 @@ int Server::read_full_recv(int curr_socket, Connection &curr_connection)
 		}
 		else if(bytes_received == 0) // Client closed write side OR there is nothing more to read
 		{
-			return (1);
+			return (CLIENT_CLOSE_SOCKET);
 		}
 		else if (bytes_received < 0 && ((errno == EAGAIN) || (errno == EWOULDBLOCK)))
 		{
 			std::cout << "Errno Break\n";
-			return (0);
+			return (BUFFER_READ);
 		}
 		else
 		{
 			// To add the correct exception
 			std::cout << "Else break\n";
-			return (-1);
+			return (READ_ERROR);
 		}
 	}
 	std::cout << "At the end of read\n";
 	std::cout << curr_connection.current_transaction->request;
 	return (-1);
+}
+
+void Server::clean_connection(int epollfd, int curr_socket, Connection &curr_connection)
+{
+	if (curr_connection.current_transaction != NULL)
+		delete curr_connection.current_transaction;
+	remove_socket_epoll(epollfd, curr_socket);
+	active_connections.erase(curr_socket);
+	close(curr_socket);
 }
 
 // Operator overload
