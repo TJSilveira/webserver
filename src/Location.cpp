@@ -9,7 +9,8 @@ Location::Location(const t_location &location_config, const VirtualServer &vir_s
 	error_page(vir_serv.error_page),
 	client_max_body_size(vir_serv.client_max_body_size),
 	index(vir_serv.index),
-	autoindex(vir_serv.autoindex)
+	autoindex(vir_serv.autoindex),
+	allow_methods(vir_serv.allow_methods)
 {
 	this->path = location_config.path;
 	for (size_t i = 0; i < location_config.dir.size(); i++)
@@ -74,6 +75,10 @@ Location::Location(const t_location &location_config, const VirtualServer &vir_s
 			if (curr_directive.args.size() != 1)
 				throw ConfigError("cgi_path must only have one path assigned", curr_directive.name);
 			this->cgi_path = curr_directive.args.at(0);
+		}
+		else if (curr_directive.name == "allow_methods")
+		{
+			this->allow_methods = curr_directive.args;
 		}
 		else
 		{

@@ -6,7 +6,7 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/01/14 17:29:14 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/10 10:59:56 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/10 16:34:54 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -44,4 +44,28 @@ int	extract_hexa_to_int(std::string str)
 
 	std::istringstream(str) >> std::hex >> n;
 	return (n);
+}
+
+void open_and_validate_file(char *filename, std::ifstream &file_stream)
+{
+	file_stream.open(filename, std::ios::in | std::ios::binary);
+	if (file_stream.fail())
+	{
+		std::cerr << "Error: could not open file." << std::endl;
+		exit(EXIT_FAILURE);
+	}
+}
+
+bool open_file(char *filename, std::ifstream &file_stream)
+{
+	file_stream.open(filename, std::ios::in | std::ios::binary);
+	if (file_stream.fail())
+		return (false);
+	return (true);
+}
+
+std::string file_to_string(std::ifstream &file)
+{
+	return (std::string(std::istreambuf_iterator<char>(file),
+						std::istreambuf_iterator<char>()));
 }

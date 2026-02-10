@@ -27,6 +27,7 @@ public:
 	std::string upload_store; // Specifies the directory where uploaded files should be stored when using the PUT method.
 	std::vector<std::string> cgi_ext; // What cgi extensions to expect
 	std::string cgi_path; // where the cgi binaries are stored 
+	std::vector<std::string> allow_methods; // What methods are allowed to be used
 };
 
 std::ostream& operator<<(std::ostream& os, const Location &obj);

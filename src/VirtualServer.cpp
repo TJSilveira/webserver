@@ -48,7 +48,6 @@ VirtualServer::VirtualServer(const t_virtual_server &vir_serv_config, const Serv
 		{
 			this->index = curr_directive.args;
 		}
-	
 		else if (curr_directive.name == "autoindex")
 		{
 			bool autoindex_status;
@@ -61,6 +60,10 @@ VirtualServer::VirtualServer(const t_virtual_server &vir_serv_config, const Serv
 				throw ConfigError("autoindex needs to be either 'on' or 'off'", curr_directive.args.at(0));
 			}
 			this->autoindex = autoindex_status;
+		}
+		else if (curr_directive.name == "allow_methods")
+		{
+			this->allow_methods = curr_directive.args;
 		}
 		else
 		{

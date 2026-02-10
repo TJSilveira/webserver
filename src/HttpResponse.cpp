@@ -55,6 +55,12 @@ void	HttpResponse::set_body(const std::string& body)
 	this->_body = body;
 }
 
+std::string	HttpResponse::get_body()
+{
+	return (this->_body);
+}
+
+
 void	HttpResponse::add_header(const std::string& key, const std::string& value)
 {
 	_headers.insert(std::make_pair(key, value));

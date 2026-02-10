@@ -208,13 +208,124 @@ void HttpTransaction::parse(const std::string &raw)
 	}
 }
 
+const Location *HttpTransaction::find_location()
+{
+	const Location *matched_location = NULL;
+	size_t size_best_match = 0;
+
+	for (size_t i = 0; i < vir_server->locations.size(); i++)
+	{
+		const std::string& loc_path = vir_server->locations.at(i).path;
+		
+		if (this->request.uri.find(loc_path) == 0)
+		{
+			if (loc_path.length() > size_best_match)
+			{
+				size_best_match = loc_path.length();
+				matched_location = &vir_server->locations.at(i);
+			}
+		}
+	}
+	return (matched_location);
+}
+
+bool is_allowed_method(const Location *matched_location, const std::string& method)
+{
+	std::vector<std::string>::const_iterator it = matched_location->allow_methods.begin();
+	std::vector<std::string>::const_iterator it_end = matched_location->allow_methods.end();
+
+	std::vector<std::string>::const_iterator result = std::find(it, it_end, method);
+	
+	if (result == it_end)
+		return (false);
+	else
+		return (true);	
+}
+
+// TODO: Refactor this function
 void	HttpTransaction::process_request(int epollfd, int curr_socket)
 {
-	std::cout << "Inside the process request\n";
-	// If the status is not in Processing, there is nothing to process
+	std::cout << "Inside process_request\n";
 	if (state == PROCESSING)
 	{
 		std::cout << "Inside Processing\n";
+		// 1. Find Location
+		const Location *matched_location = find_location();
+		if (matched_location == NULL)
+		{
+			build_error_reponse(404);
+			change_socket_epollout(epollfd, curr_socket);
+			return;
+		}
+		// 2. Validate Method
+		if (is_allowed_method(matched_location, request.method) == false)
+		{
+			build_error_reponse(405);
+			change_socket_epollout(epollfd, curr_socket);
+			return;
+		}
+		// 3. Resolve Path
+		std::string		final_path;
+		std::ifstream	html_file;
+		struct stat		s;
+		final_path = matched_location->root + request.uri;
+
+		if (stat(final_path.c_str(), &s) == 0)
+		{
+			// If the request uri matches a directory
+			if (S_ISDIR(s.st_mode))
+			{
+				// check if location has indices to return
+				for (size_t i = 0; i < matched_location->index.size(); i++)
+				{
+					std::string	index_path = final_path + matched_location->index.at(i);
+					if (open_file(&index_path.at(0), html_file) == true)
+					{
+						response.set_body(file_to_string(html_file));
+						response.build_response();
+						change_socket_epollout(epollfd, curr_socket);
+						return;
+					}
+				}
+				// given there were no indices, check if we can return autoindex
+				if (vir_server->autoindex == true)
+				{
+					response.set_body(build_autoindex_string(matched_location));
+					if (response.get_body().size() == 0)
+					{
+						build_error_reponse(500);
+						change_socket_epollout(epollfd, curr_socket);
+						return;
+					}
+				}
+				// Without any available indices or autoindex, we need to return an error
+				else 
+				{
+					build_error_reponse(403);
+					change_socket_epollout(epollfd, curr_socket);
+					return;
+				}
+			}
+			// If it is not a directory, it is a file
+			else
+			{
+				if (open_file(&final_path.at(0), html_file) == true)
+					response.set_body(file_to_string(html_file));
+				else
+				{
+					build_error_reponse(405);
+					change_socket_epollout(epollfd, curr_socket);
+					return;
+				}
+			}
+		}
+		// Given that we could not find the resource, we should return a 404 error
+		else
+		{
+			build_error_reponse(404);
+			change_socket_epollout(epollfd, curr_socket);
+			return;
+		}
 		response.build_response();
 		change_socket_epollout(epollfd, curr_socket);
 	}
@@ -274,4 +385,43 @@ std::string	HttpTransaction::generate_error_page(int error_code)
 			return std::string((std::istreambuf_iterator<char>(file_stream)), std::istreambuf_iterator<char>());
 	}
 	return ("<html><body><h1>" + ft_int_to_string(error_code) + " Error</h1></body></html>");
+}
+
+std::string	HttpTransaction::build_autoindex_string(const Location *matched_location)
+{
+	std::string dirName(matched_location->path);
+	DIR *dir = opendir(matched_location->path.c_str());
+    std::string page =\
+    "<!DOCTYPE html>\n\
+    <html>\n\
+    <head>\n\
+            <title>" + dirName + "</title>\n\
+    </head>\n\
+    <body>\n\
+    <h1>INDEX</h1>\n\
+    <p>\n";
+
+	if (dir == NULL)
+	{
+		std::cerr << "Error opening directory in autoindex function\n";
+		return ("");
+	}
+
+	for (struct dirent *file = readdir(dir); file; file = readdir(dir))
+	{
+		page += "<li><a href=http://localhost:";
+		page += ft_int_to_string(this->vir_server->listen);
+		page += dirName;
+		page += "/";
+		page += file->d_name;
+		page += ">";
+		page += file->d_name;
+		page += "</a>";
+	}
+
+	page +="\
+    </p>\n\
+    </body>\n\
+    </html>\n";
+	return (page);
 }

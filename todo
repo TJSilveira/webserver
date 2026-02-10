@@ -1,10 +1,16 @@
-Tiago -> Parsing the configuration file
+Current:
+Add routing + customize the return of the server according to location settings -> Tiago
+
 
 Next steps:
-with the parsed structure, initialize the classes
-Creating server loop
-Create HTTP Request Parser
-Create HTTP response Builder
 Create the static content
 Create the error pages
 Add CGI
+Refactor epoll loop into smaller components
+
+DONE:
+Parsing the configuration file -> Tiago
+with the parsed structure, initialize the classes -> Tiago
+Creating server loop -> Tiago
+Create HTTP Request Parser -> Tiago
+Create HTTP response Builder -> Tiago

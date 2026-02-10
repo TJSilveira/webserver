@@ -20,8 +20,14 @@ public:
 
 	static std::map<int, std::string> http_status_codes;
 
+	// Setters
 	void	set_status(int code);
 	void	set_body(const std::string& body);
+
+	// Getters
+	std::string	get_body();
+
+
 	void	add_header(const std::string& key, const std::string& value);
 	std::string	get_contentlength_header();
 	void	serialize_response();

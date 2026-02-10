@@ -6,13 +6,14 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/01/14 17:29:14 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/04 17:59:11 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/10 16:33:14 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../includes/Server.hpp"
 #include "../includes/Lexer.hpp"
 #include "../includes/Parser.hpp"
+#include "../includes/utils.hpp"
 #include <iostream>
 
 // For socket
@@ -24,23 +25,6 @@
 #include <sys/types.h> 
 #include <sys/socket.h>
 #include <netinet/in.h>
-
-
-void open_and_validate_file(char *filename, std::ifstream	&conf_file)
-{
-	conf_file.open(filename, std::ios::in | std::ios::binary);
-	if (conf_file.fail())
-	{
-		std::cerr << "Error: could not open file." << std::endl;
-		exit(EXIT_FAILURE);
-	}
-}
-
-std::string file_to_string(std::ifstream &file)
-{
-	return (std::string(std::istreambuf_iterator<char>(file),
-						std::istreambuf_iterator<char>()));
-}
 
 int main(int argc, char* argv[])
 {

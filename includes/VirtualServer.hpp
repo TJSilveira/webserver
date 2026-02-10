@@ -30,6 +30,7 @@ public:
 	size_t client_max_body_size; 
 	std::vector<std::string> index;
 	bool autoindex;
+	std::vector<std::string> allow_methods;
 };
 
 std::ostream& operator<<(std::ostream& os, const VirtualServer &obj);

@@ -9,6 +9,8 @@
 
 #include <iostream>
 #include <fstream>
+#include <sys/stat.h>
+#include <dirent.h>
 
 class HttpTransaction
 {
@@ -23,11 +25,14 @@ public:
 	HttpTransaction(const VirtualServer *vir_server);
 	~HttpTransaction();
 
-	void	parse(const std::string &raw);
-	void	process_request(int epollfd, int curr_socket);
-	void	send_response(int curr_socket);
-	void	build_error_reponse(int error_code);
-	std::string	generate_error_page(int error_code);
+	void			parse(const std::string &raw);
+	void			process_request(int epollfd, int curr_socket);
+	void			send_response(int curr_socket);
+	void			build_error_reponse(int error_code);
+	const Location*	find_location();
+	std::string		generate_error_page(int error_code);
+
+	std::string	build_autoindex_string(const Location *matched_location);
 
 	HttpRequest		request;
 	HttpResponse	response;
@@ -59,5 +64,7 @@ public:
 	};
 	State			state;
 };
+
+bool is_allowed_method(const Location *matched_location, const std::string& method);
 
 #endif
