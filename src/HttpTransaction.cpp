@@ -1,7 +1,11 @@
 #include "../includes/HttpTransaction.hpp"
 #include <cerrno>
 
-HttpTransaction::HttpTransaction(const VirtualServer *vir_server):vir_server(vir_server), state(PARSING_REQ_METHOD) {}
+HttpTransaction::HttpTransaction(const VirtualServer *vir_server):
+			parse_chuncked_bytes_to_read(0),
+			parse_is_last_chunck(false), 
+			vir_server(vir_server),
+			state(PARSING_REQ_METHOD) {}
 
 HttpTransaction::~HttpTransaction()
 {
@@ -101,10 +105,16 @@ void HttpTransaction::parse(const std::string &raw)
 		case PARSING_HEADER_FINAL_CR:
 			if (raw.at(i) == '\n')
 			{
-				if(this->request.headers.count("Content-Length") == 0)
-					this->state = PROCESSING;
-				else
+				if(this->request.headers.count("Content-Length") == 1)
 					this->state = PARSING_BODY;
+				else if(this->request.headers.count("Transfer-Encoding") == 1 &&
+						this->request.headers.at("Transfer-Encoding") == "chunked")
+				{
+					this->state = PARSING_CHUNCKED_SIZE;
+					std::cout << "In the chunked\n";
+				}
+				else
+					this->state = PROCESSING;
 			}
 			else
 				this->state = PARSING_ERROR;
@@ -125,7 +135,73 @@ void HttpTransaction::parse(const std::string &raw)
 			{
 				this->state = PROCESSING;
 				break;
-			}		
+			}
+		case PARSING_CHUNCKED_SIZE:
+			if (raw.at(i) == '\r')
+			{
+				if (parse_chuncked_size_str.size() == 0)
+					this->state = PARSING_ERROR;
+				else
+					this->state = PARSING_CHUNCKED_SIZE_CR;
+				break;
+			}
+			else if (raw.at(i) == ' ')
+			{
+				break;
+			}
+			parse_chuncked_size_str += raw.at(i);
+			break;
+		case PARSING_CHUNCKED_SIZE_CR:
+			parse_chuncked_bytes_to_read = extract_hexa_to_int(parse_chuncked_size_str);
+			std::cout <<"This is the size: " << parse_chuncked_bytes_to_read << "\n";
+			if (parse_chuncked_bytes_to_read == 0)
+				parse_is_last_chunck = true;
+			
+			if (raw.at(i) == '\n' && parse_is_last_chunck == false)
+				this->state = PARSING_CHUNCKED_BODY;
+			else if (raw.at(i) == '\n' && parse_is_last_chunck == true)
+				this->state = PARSING_CHUNCKED_DONE;
+			else
+				this->state = PARSING_ERROR;
+			break;
+		case PARSING_CHUNCKED_BODY:
+			if (parse_chuncked_bytes_to_read > 0)
+			{
+				request.body += raw.at(i);
+				parse_chuncked_bytes_to_read--;
+			}
+			else if (parse_chuncked_bytes_to_read == 0 && raw.at(i) == '\r')
+				this->state = PARSING_CHUNCKED_CR;
+			else
+				this->state = PARSING_ERROR;
+			break;
+		case PARSING_CHUNCKED_CR:
+			if (raw.at(i) == '\n')
+				this->state = PARSING_CHUNCKED_DONE;
+			else
+				this->state = PARSING_ERROR;
+			break;
+		case PARSING_CHUNCKED_DONE:
+			if (raw.at(i) == '\r')
+				this->state = PARSING_CHUNCKED_FINAL_CR;
+			else
+				this->state = PARSING_ERROR;
+			break;
+		case PARSING_CHUNCKED_FINAL_CR:
+			if (raw.at(i) == '\n')
+			{
+				std::cout << "Inside the final PARSING_CHUNCKED_FINAL_CR\n";
+				if (parse_is_last_chunck == true)
+				{
+					this->state = PROCESSING;
+					std::cout << "This is the state of body at the end of the chuncked parsing" << request.body << std::endl;
+				}
+				else
+					this->state = PARSING_CHUNCKED_SIZE;
+			}
+			else
+				this->state = PARSING_ERROR;
+			break;
 		default:
 			break;
 		}

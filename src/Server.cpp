@@ -7,7 +7,7 @@
 #define BUFFER_SIZE 8192
 #define CLIENT_CLOSE_SOCKET 1
 #define BUFFER_READ 0
-#define READ_ERROR 0
+#define READ_ERROR -1
 
 
 std::string directives_array[] = {
@@ -171,6 +171,7 @@ void	Server::run_server()
 					int status = read_full_recv(curr_socket, curr_connection);
 					if(status == READ_ERROR)
 					{
+						std::cout << "CLEANING IN THE 'READ_ERROR'\n";
 						clean_connection(epollfd, curr_socket, curr_connection);
 						continue;
 					}

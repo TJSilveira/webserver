@@ -16,6 +16,9 @@ private:
 	std::string temp;
     std::string temp_key;
     std::string temp_value;
+	int			parse_chuncked_bytes_to_read;
+	std::string	parse_chuncked_size_str;
+	bool		parse_is_last_chunck;
 public:
 	HttpTransaction(const VirtualServer *vir_server);
 	~HttpTransaction();
@@ -42,6 +45,12 @@ public:
 		PARSING_HEADER_DONE,
 		PARSING_HEADER_FINAL_CR,
 		PARSING_BODY,
+		PARSING_CHUNCKED_SIZE,
+		PARSING_CHUNCKED_SIZE_CR,
+		PARSING_CHUNCKED_BODY,
+		PARSING_CHUNCKED_CR,
+		PARSING_CHUNCKED_DONE,
+		PARSING_CHUNCKED_FINAL_CR,
 		PARSING_ERROR,
 		PROCESSING,
 		WAITING_CGI,

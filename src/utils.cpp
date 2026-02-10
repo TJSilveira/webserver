@@ -6,7 +6,7 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/01/14 17:29:14 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/07 18:13:35 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/10 10:59:56 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -38,3 +38,10 @@ int	extract_and_validate_str_to_int(std::string str)
 	return (static_cast<int> (num));
 }
 
+int	extract_hexa_to_int(std::string str)
+{
+	int n;
+
+	std::istringstream(str) >> std::hex >> n;
+	return (n);
+}
