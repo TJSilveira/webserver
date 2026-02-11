@@ -72,7 +72,7 @@ Lexer::Lexer(std::string &config_str)
 			std::string temp_str;
 			temp_str += "\"";
 			i++;
-			while (config_str[i] && config_str[i] == '\"')
+			while (config_str[i] && config_str[i] != '\"')
 			{
 				temp_str += config_str[i];
 				i++;
@@ -80,7 +80,7 @@ Lexer::Lexer(std::string &config_str)
 			if (!config_str[i])
 				throw std::exception();
 			temp_str += "\"";
-			_token_list.push_back(token(" ", ParamTok));
+			_token_list.push_back(token(temp_str, ParamTok));
 		}
 		else
 		{

@@ -1,8 +1,7 @@
 Current:
-Add timout to sockets -> Tiago
+Add upload capabilities -> Tiago
 
 Next steps:
-Add upload capabilities
 Enforce maximum data exchange
 Understand how and when to Chunk http responses
 Add CGI
@@ -17,3 +16,4 @@ Create HTTP response Builder -> Tiago
 Add routing + customize the return of the server according to location settings -> Tiago
 Create the static content -> Tiago
 Create the error pages -> Tiago
+Add timeout to sockets -> Tiago
