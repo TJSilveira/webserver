@@ -41,12 +41,8 @@ public:
 
 	void	init();
 	void	run_server();
-	int		read_full_recv(int curr_socket, Connection &curr_connection);
-	void 	clean_connection(int epollfd, int curr_socket, Connection &curr_connection);
-
-
-
-
+	void 	clean_connection(int epollfd, Connection &curr_connection);
+	void	close_inactive_connections(int epollfd);
 
 	static std::vector<std::string> directives;
 	static std::vector<std::string> context;

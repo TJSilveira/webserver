@@ -29,9 +29,9 @@ void	HttpResponse::serialize_response()
 	std::cout << "Response: " << _response_buffer << std::endl;
 }
 
-void	HttpResponse::build_response()
+void	HttpResponse::build_response(int status_code)
 {
-	set_status(200);
+	set_status(status_code);
 	serialize_response();
 }
 

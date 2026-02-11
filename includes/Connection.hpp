@@ -3,22 +3,34 @@
 
 #include <unistd.h>
 #include <string>
+#include <ctime>
 #include <sys/socket.h>
+#include <sys/time.h>
 #include "HttpTransaction.hpp"
+
+#define BUFFER_SIZE 8192
+#define CLIENT_CLOSE_SOCKET 1
+#define BUFFER_READ 0
+#define READ_ERROR -1
 
 class Connection
 {
 private:
+	struct timeval	last_activity;
 public:
 	Connection(int socket_fd, const VirtualServer* server_config);
 	~Connection();
 
 	void	close_connection();
+	void	update_last_activity();
+	bool	is_timed_out(int timeout_seconds) const;
+	int 	read_full_recv();
+	void	send_response();
 
-	int			socket_fd;
-	const VirtualServer* server_config;
+	int						socket_fd;
+	const VirtualServer*	server_config;
 
-	HttpTransaction*	current_transaction;
+	HttpTransaction*		current_transaction;
 };
 
 #endif

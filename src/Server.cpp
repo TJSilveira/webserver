@@ -4,11 +4,7 @@
 #include <ostream>
 #include <vector>
 
-#define BUFFER_SIZE 8192
-#define CLIENT_CLOSE_SOCKET 1
-#define BUFFER_READ 0
-#define READ_ERROR -1
-
+#define TIMEOUT_SECONDS 10
 
 std::string directives_array[] = {
 	"listen",
@@ -168,20 +164,22 @@ void	Server::run_server()
 					if (curr_connection.current_transaction == NULL)
 						curr_connection.current_transaction = new HttpTransaction(curr_connection.server_config);
 					
-					int status = read_full_recv(curr_socket, curr_connection);
+					int status = curr_connection.read_full_recv();
 					if(status == READ_ERROR)
 					{
 						std::cout << "CLEANING IN THE 'READ_ERROR'\n";
-						clean_connection(epollfd, curr_socket, curr_connection);
+						clean_connection(epollfd, curr_connection);
 						continue;
 					}
+					curr_connection.update_last_activity();
 					curr_connection.current_transaction->process_request(epollfd, curr_socket);
 				}
 				if(events[i].events & EPOLLOUT)
 				{
 					if (curr_connection.current_transaction == NULL)
 						continue;
-					curr_connection.current_transaction->send_response(curr_socket);
+					curr_connection.send_response();
+					curr_connection.update_last_activity();
 					if (curr_connection.current_transaction->state == curr_connection.current_transaction->COMPLETE)
 					{
 						delete curr_connection.current_transaction;
@@ -190,55 +188,34 @@ void	Server::run_server()
 					}
 				}
 				if (events[i].events & (EPOLLERR | EPOLLHUP | EPOLLRDHUP))
-					clean_connection(epollfd, curr_socket, curr_connection);
+					clean_connection(epollfd, curr_connection);
 			}
 		}
 	}
 }
 
-// TODO: Breakdown the function further
-int Server::read_full_recv(int curr_socket, Connection &curr_connection)
-{
-	std::string buffer;
-	while (true)
-	{
-		buffer.clear();
-		buffer.resize(BUFFER_SIZE);
-		ssize_t bytes_received = recv(curr_socket, &buffer[0], BUFFER_SIZE, 0);
-		std::cout << "This is the buffer: " << buffer << std::endl; 
-		if (bytes_received > 0)
-		{
-			buffer.resize(bytes_received);
-			curr_connection.current_transaction->parse(buffer);
-		}
-		else if(bytes_received == 0) // Client closed write side OR there is nothing more to read
-		{
-			return (CLIENT_CLOSE_SOCKET);
-		}
-		else if (bytes_received < 0 && ((errno == EAGAIN) || (errno == EWOULDBLOCK)))
-		{
-			std::cout << "Errno Break\n";
-			return (BUFFER_READ);
-		}
-		else
-		{
-			// To add the correct exception
-			std::cout << "Else break\n";
-			return (READ_ERROR);
-		}
-	}
-	std::cout << "At the end of read\n";
-	std::cout << curr_connection.current_transaction->request;
-	return (-1);
-}
-
-void Server::clean_connection(int epollfd, int curr_socket, Connection &curr_connection)
+void Server::clean_connection(int epollfd, Connection &curr_connection)
 {
 	if (curr_connection.current_transaction != NULL)
 		delete curr_connection.current_transaction;
-	remove_socket_epoll(epollfd, curr_socket);
-	active_connections.erase(curr_socket);
-	close(curr_socket);
+	remove_socket_epoll(epollfd, curr_connection.socket_fd);
+	active_connections.erase(curr_connection.socket_fd);
+	close(curr_connection.socket_fd);
+}
+
+void	Server::close_inactive_connections(int epollfd)
+{
+	std::map<int, Connection>::iterator it = active_connections.begin();
+	std::map<int, Connection>::iterator it_end = active_connections.end();
+
+	for (; it != it_end; it++)
+	{
+		if(it->second.is_timed_out(TIMEOUT_SECONDS))
+		{
+			std::cout << "Timeout of Connection in socket " << it->second.socket_fd <<std::endl;
+			clean_connection(epollfd, it->second);
+		}
+	}
 }
 
 // Operator overload

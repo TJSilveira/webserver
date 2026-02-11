@@ -31,7 +31,7 @@ public:
 	void	add_header(const std::string& key, const std::string& value);
 	std::string	get_contentlength_header();
 	void	serialize_response();
-	void	build_response();
+	void	build_response(int status_code);
 
 	std::string	_response_buffer;
 	size_t		_bytes_sent;

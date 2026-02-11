@@ -3,7 +3,10 @@
 Connection::Connection(int socket_fd, const VirtualServer* server_config):
 	socket_fd(socket_fd),
 	server_config(server_config),
-	current_transaction(NULL) {}
+	current_transaction(NULL)
+{
+	update_last_activity();
+}
 
 Connection::~Connection()
 {
@@ -13,6 +16,21 @@ Connection::~Connection()
 	}
 }
 
+void	Connection::update_last_activity()
+{
+	gettimeofday(&last_activity, NULL);
+}
+
+bool	Connection::is_timed_out(int timeout_seconds) const
+{
+	struct timeval now;
+	gettimeofday(&now, NULL);
+
+	long elapsed = (now.tv_sec - last_activity.tv_sec);
+
+	return (elapsed > timeout_seconds);
+}
+
 void	Connection::close_connection()
 {
 	if (socket_fd != -1)
@@ -20,4 +38,66 @@ void	Connection::close_connection()
 		close(socket_fd);
 		socket_fd = -1;
 	}
+}
+
+int Connection::read_full_recv()
+{
+	std::string buffer;
+	while (true)
+	{
+		buffer.clear();
+		buffer.resize(BUFFER_SIZE);
+		ssize_t bytes_received = recv(socket_fd, &buffer[0], BUFFER_SIZE, 0);
+		std::cout << "This is the buffer: " << buffer << std::endl; 
+		if (bytes_received > 0)
+		{
+			buffer.resize(bytes_received);
+			current_transaction->parse(buffer);
+		}
+		else if(bytes_received == 0) // Client closed write side OR there is nothing more to read
+		{
+			return (CLIENT_CLOSE_SOCKET);
+		}
+		else if (bytes_received < 0 && ((errno == EAGAIN) || (errno == EWOULDBLOCK)))
+		{
+			std::cout << "Errno Break\n"; // TBDeleted
+			return (BUFFER_READ);
+		}
+		else
+		{
+			return (READ_ERROR);
+		}
+	}
+	return (READ_ERROR);
+}
+
+void	Connection::send_response()
+{
+	HttpResponse& response = this->current_transaction->response;
+	while (response._bytes_sent < response._response_buffer.size())
+	{
+		size_t	missing_bytes = response._response_buffer.size() - response._bytes_sent;
+
+		ssize_t current_sent_bytes = send(socket_fd,
+			&response._response_buffer[response._bytes_sent], 
+			missing_bytes, MSG_NOSIGNAL);
+
+		if (current_sent_bytes > 0)
+		{
+			response._bytes_sent += current_sent_bytes;
+		}
+		else if (current_sent_bytes < 0 && ((errno == EAGAIN) || (errno == EWOULDBLOCK)))
+		{
+			current_transaction->mark_as_complete();
+			return;
+		}
+		else
+		{
+			// Fatal error
+			std::cerr << "Send error\n";
+			return;
+		}
+	}
+	std::cout << "Finalized send\n";
+	current_transaction->mark_as_complete();
 }

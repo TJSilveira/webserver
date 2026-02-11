@@ -1,10 +1,10 @@
 Current:
-Add routing + customize the return of the server according to location settings -> Tiago
-
+Add timout to sockets -> Tiago
 
 Next steps:
-Create the static content
-Create the error pages
+Add upload capabilities
+Enforce maximum data exchange
+Understand how and when to Chunk http responses
 Add CGI
 Refactor epoll loop into smaller components
 
@@ -14,3 +14,6 @@ with the parsed structure, initialize the classes -> Tiago
 Creating server loop -> Tiago
 Create HTTP Request Parser -> Tiago
 Create HTTP response Builder -> Tiago
+Add routing + customize the return of the server according to location settings -> Tiago
+Create the static content -> Tiago
+Create the error pages -> Tiago

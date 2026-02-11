@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Webserv Error Codes</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #f9f9f9;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        /* Navbar matching index.html style if implied, or keeping generic clean style */
+        nav {
+            background: white;
+            padding: 15px;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            width: 100%;
+            max-width: 800px; /* Match the body width */
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-sizing: border-box; 
+        }
+
+        nav a {
+            text-decoration: none;
+            color: #555;
+            margin: 0 10px;
+            font-weight: 500;
+        }
+
+        nav a:hover {
+            color: #2c3e50;
+        }
+
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 40px;
+            width: 100%;
+            max-width: 800px;
+        }
+
+        .container {
+            max-width: 800px; /* CHANGED from 1200px to 800px */
+            width: 100%;
+            margin: 0 auto;
+            display: grid;
+            /* Adjusted minmax to fit better in 800px (approx 3 cards per row or 2 on smaller screens) */
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); 
+            gap: 20px;
+        }
+
+        .error-card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            border-top: 5px solid #ccc;
+        }
+
+        .error-card:hover {
+            transform: translateY(-5px);
+        }
+
+        /* Color Coding based on status range */
+        .status-4xx { border-color: #e74c3c; } /* Red - Client Error */
+        .status-5xx { border-color: #9b59b6; } /* Purple - Server Error */
+
+        .code {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #333;
+            margin: 0;
+        }
+
+        .description {
+            font-size: 1.1em;
+            color: #666;
+            margin: 10px 0 20px 0;
+            flex-grow: 1;
+        }
+
+        .test-btn {
+            background-color: #34495e;
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            font-size: 0.9em;
+            transition: background 0.2s;
+        }
+
+        .test-btn:hover {
+            background-color: #2c3e50;
+        }
+    </style>
+</head>
+<body>
+
+    <nav>
+        <div style="font-weight: bold; font-size: 1.2rem;">webserv 42</div>
+        <div>
+            <a href="/">Home</a>
+            <a href="/about/">About</a>
+            <a href="/errors/" style="color: #2c3e50; font-weight: bold;">Errors</a>
+        </div>
+    </nav>
+
+    <h1>Supported HTTP Status Codes</h1>
+    
+    <div class="container">
+        <!-- 4xx Client Errors -->
+        <div class="error-card status-4xx">
+            <div class="code">400</div>
+            <div class="description">Bad Request</div>
+            <a href="/errors/400.html" class="test-btn">Test Page</a>
+        </div>
+        <div class="error-card status-4xx">
+            <div class="code">403</div>
+            <div class="description">Forbidden</div>
+            <a href="/errors/403.html" class="test-btn">Test Page</a>
+        </div>
+        <div class="error-card status-4xx">
+            <div class="code">404</div>
+            <div class="description">Not Found</div>
+            <a href="/errors/404.html" class="test-btn">Test Page</a>
+        </div>
+        <div class="error-card status-4xx">
+            <div class="code">405</div>
+            <div class="description">Method Not Allowed</div>
+            <a href="/errors/405.html" class="test-btn">Test Page</a>
+        </div>
+        <div class="error-card status-4xx">
+            <div class="code">408</div>
+            <div class="description">Request Timeout</div>
+            <a href="/errors/408.html" class="test-btn">Test Page</a>
+        </div>
+        <div class="error-card status-4xx">
+            <div class="code">413</div>
+            <div class="description">Content Too Large</div>
+            <a href="/errors/413.html" class="test-btn">Test Page</a>
+        </div>
+        <div class="error-card status-4xx">
+            <div class="code">418</div>
+            <div class="description">I'm a teapot</div>
+            <a href="/errors/418.html" class="test-btn">Test Page</a>
+        </div>
+
+        <!-- 5xx Server Errors -->
+        <div class="error-card status-5xx">
+            <div class="code">500</div>
+            <div class="description">Internal Server Error</div>
+            <a href="/errors/500.html" class="test-btn">Test Page</a>
+        </div>
+        <div class="error-card status-5xx">
+            <div class="code">501</div>
+            <div class="description">Not Implemented</div>
+            <a href="/errors/501.html" class="test-btn">Test Page</a>
+        </div>
+        <div class="error-card status-5xx">
+            <div class="code">502</div>
+            <div class="description">Bad Gateway</div>
+            <a href="/errors/502.html" class="test-btn">Test Page</a>
+        </div>
+        <div class="error-card status-5xx">
+            <div class="code">503</div>
+            <div class="description">Service Unavailable</div>
+            <a href="/errors/503.html" class="test-btn">Test Page</a>
+        </div>
+        <div class="error-card status-5xx">
+            <div class="code">504</div>
+            <div class="description">Gateway Timeout</div>
+            <a href="/errors/504.html" class="test-btn">Test Page</a>
+        </div>
+        <div class="error-card status-5xx">
+            <div class="code">505</div>
+            <div class="description">HTTP Version Not Supported</div>
+            <a href="/errors/505.html" class="test-btn">Test Page</a>
+        </div>
+    </div>
+</body>
+</html>

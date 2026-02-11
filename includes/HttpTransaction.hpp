@@ -27,12 +27,14 @@ public:
 
 	void			parse(const std::string &raw);
 	void			process_request(int epollfd, int curr_socket);
-	void			send_response(int curr_socket);
 	void			build_error_reponse(int error_code);
 	const Location*	find_location();
 	std::string		generate_error_page(int error_code);
 
-	std::string	build_autoindex_string(const Location *matched_location);
+	void			build_response_found_resource(const Location* matched_location, struct stat &s, std::string &final_path);
+	std::string		build_autoindex_string(std::string &dir_path);
+
+	void			mark_as_complete();
 
 	HttpRequest		request;
 	HttpResponse	response;
