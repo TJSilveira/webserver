@@ -24,6 +24,7 @@ public:
 	std::vector<std::string> index; // default page to be sent
 	bool autoindex; // default page to be sent
 	std::string	alias; // Replaces the matched location prefix with a specified path
+	std::pair<int, std::string>	return_redir; // Redirects to a different page
 	std::string upload_store; // Specifies the directory where uploaded files should be stored when using the PUT method.
 	std::vector<std::string> cgi_ext; // What cgi extensions to expect
 	std::string cgi_path; // where the cgi binaries are stored 

@@ -10,6 +10,7 @@ Location::Location(const t_location &location_config, const VirtualServer &vir_s
 	client_max_body_size(vir_serv.client_max_body_size),
 	index(vir_serv.index),
 	autoindex(vir_serv.autoindex),
+	return_redir(std::make_pair(0,"")),
 	allow_methods(vir_serv.allow_methods)
 {
 	this->path = location_config.path;
@@ -59,6 +60,13 @@ Location::Location(const t_location &location_config, const VirtualServer &vir_s
 			if (curr_directive.args.size() != 1)
 				throw ConfigError("alias must only have one path assigned", curr_directive.name);
 			this->alias = curr_directive.args.at(0);
+		}
+		else if (curr_directive.name == "return")
+		{
+			if (curr_directive.args.size() != 2)
+				throw ConfigError("return must have status code and location assigned", curr_directive.name);
+			return_redir.first = extract_and_validate_str_to_int(curr_directive.args.at(0));
+			return_redir.second = curr_directive.args.at(1);
 		}
 		else if (curr_directive.name == "upload_store")
 		{

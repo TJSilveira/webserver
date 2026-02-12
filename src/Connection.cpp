@@ -86,7 +86,6 @@ int Connection::read_full_recv()
 		}
 		else if (bytes_received < 0 && ((errno == EAGAIN) || (errno == EWOULDBLOCK)))
 		{
-			std::cout << "Errno Break\n"; // TBDeleted
 			return (BUFFER_READ);
 		}
 		else

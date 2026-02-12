@@ -194,7 +194,13 @@ void	Server::read_handler(int epollfd,  int socketfd)
 		return;
 	}
 	curr_connection.insert_keep_alive_header();
-	curr_connection.current_transaction->process_request(epollfd, socketfd);	
+	curr_connection.current_transaction->process_request(epollfd, socketfd);
+	std::cout << "==== THIS IS THE REQUEST ====\n";
+	std::cout << curr_connection.current_transaction->request;
+	std::cout << "==== END OF THE REQUEST ====\n";
+	std::cout << "==== THIS IS THE response ====\n";
+	std::cout << curr_connection.current_transaction->response;
+	std::cout << "==== END OF THE response ====\n";
 }
 
 void	Server::send_handler(int epollfd,  int socketfd)
@@ -230,7 +236,10 @@ void Server::clean_connection(int epollfd, int socketfd)
 		return;
 	
 	if (it->second.current_transaction !=NULL)
+	{
 		delete it->second.current_transaction;
+		it->second.current_transaction = NULL;
+	}
 	remove_socket_epoll(epollfd, socketfd);
 	close(socketfd);
 	active_connections.erase(it);

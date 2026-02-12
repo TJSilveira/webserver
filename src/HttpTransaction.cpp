@@ -260,17 +260,37 @@ void	HttpTransaction::process_request(int epollfd, int curr_socket)
 			change_socket_epollout(epollfd, curr_socket);
 			return;
 		}
-		// 3. Resolve Path
-		std::string		final_path;
-		struct stat		s;
-		final_path = "." + matched_location->root + request.uri;
-		std::cout << "This is the final_path: " << final_path << std::endl;
+		// 3. Build the response. The potential options for response are:
+		// 3.1. Return Redirections
+		if (matched_location->return_redir.first != 0)
+		{
+			response.add_header("Location", matched_location->return_redir.second);
+			response.build_response(matched_location->return_redir.first);
+			change_socket_epollout(epollfd, curr_socket);
+			return;
+		}
+		// 3.2. Alias to get files from different location
+		// else if (matched_location->alias.size() != 0)
+		// {
 
-		if (stat(final_path.c_str(), &s) == 0)
-			build_response_found_resource(matched_location, s, final_path);
+		// }
+		// 3.3. CGI
+		// else if ()
+		// {}
+		// 3.4. Normal file retrieval according to the location it is in an uri
 		else
-			build_error_reponse(404);
-		change_socket_epollout(epollfd, curr_socket);
+		{
+			std::string		final_path;
+			struct stat		s;
+			final_path = "." + matched_location->root + request.uri;
+
+			if (stat(final_path.c_str(), &s) == 0)
+				build_response_found_resource(matched_location, s, final_path);
+			else
+				build_error_reponse(404);
+			change_socket_epollout(epollfd, curr_socket);
+			state = COMPLETE;
+		}
 	}
 	else if (state == PARSING_ERROR)
 	{
@@ -283,7 +303,7 @@ void	HttpTransaction::process_request(int epollfd, int curr_socket)
 void	HttpTransaction::build_response_found_resource(const Location* matched_location, struct stat &s, std::string &final_path)
 {
 	std::ifstream	html_file;
-
+	
 	// If the request uri matches a directory
 	if (S_ISDIR(s.st_mode))
 	{

@@ -28,7 +28,6 @@ void	HttpResponse::serialize_response()
 	_response_buffer += serialize_headers();
 	_response_buffer += "\r\n";
 	_response_buffer += this->_body;
-	std::cout << "Response: " << _response_buffer << std::endl;
 }
 
 void	HttpResponse::build_response(int status_code)
@@ -153,3 +152,9 @@ std::map<int, std::string> HttpResponse::initHttpStatusCodes() {
 }
 
 std::map<int, std::string> HttpResponse::http_status_codes = HttpResponse::initHttpStatusCodes();
+
+
+std::ostream& operator<<(std::ostream& os, const HttpResponse& resp) {
+    os << resp._response_buffer;
+    return os;
+}

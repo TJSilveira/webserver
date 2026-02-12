@@ -37,4 +37,6 @@ public:
 	size_t		_bytes_sent;
 };
 
+std::ostream& operator<<(std::ostream& os, const HttpResponse& resp);
+
 #endif
