@@ -270,10 +270,25 @@ void	HttpTransaction::process_request(int epollfd, int curr_socket)
 			return;
 		}
 		// 3.2. Alias to get files from different location
-		// else if (matched_location->alias.size() != 0)
-		// {
+		else if (matched_location->alias.size() != 0)
+		{
+			std::string		file_name;
+			std::string		final_path;
+			std::size_t		len_file_name;
+			struct stat		s;
 
-		// }
+			len_file_name = std::max(static_cast<std::size_t>(0), request.uri.size() - request.uri.find_last_of('/') - 1);
+			if (len_file_name != 0)
+				file_name = std::string(request.uri, request.uri.find_last_of('/') + 1, len_file_name);
+			
+			final_path = "." + matched_location->alias + file_name;
+			if (stat(final_path.c_str(), &s) == 0)
+				build_response_found_resource(matched_location, s, final_path);
+			else
+				build_error_reponse(404);
+			change_socket_epollout(epollfd, curr_socket);
+			state = COMPLETE;
+		}
 		// 3.3. CGI
 		// else if ()
 		// {}
