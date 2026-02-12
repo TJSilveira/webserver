@@ -41,8 +41,12 @@ public:
 
 	void	init();
 	void	run_server();
-	void 	clean_connection(int epollfd, Connection &curr_connection);
+	void 	clean_connection(int epollfd, int socketfd);
 	void	close_inactive_connections(int epollfd);
+
+	// Handlers
+	void	read_handler(int epollfd, int socketfd);
+	void	send_handler(int epollfd,  int socketfd);
 
 	static std::vector<std::string> directives;
 	static std::vector<std::string> context;

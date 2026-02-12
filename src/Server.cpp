@@ -139,7 +139,7 @@ void	Server::run_server()
 
 	// TODO: Add limits to the number of sockets that are checked by epoll
 	while(true) {
-		nfds = epoll_wait(epollfd, events, MAX_EVENTS, -1);
+		nfds = epoll_wait(epollfd, events, MAX_EVENTS, 1000);
 		if (nfds == -1) {
 			perror("epoll_wait");
 			exit(EXIT_FAILURE);
@@ -150,57 +150,90 @@ void	Server::run_server()
 			if (it_listen_sock != listening_sockfds.end()){
 				listen_sock = it_listen_sock->first;
 				conn_sock = accept_conn_socket(listen_sock);
-				add_socket_epoll(epollfd, conn_sock);
-				active_connections.insert(std::make_pair(conn_sock, Connection(conn_sock, it_listen_sock->second)));
+				if (conn_sock != -1)
+				{
+					add_socket_epoll(epollfd, conn_sock);
+					active_connections.insert(std::make_pair(conn_sock, Connection(conn_sock, it_listen_sock->second)));
+				}
 			} else {
 				std::cout << "Connection socket that needs attention: " << events[i].data.fd << std::endl;
-				int curr_socket = events[i].data.fd;
-				Connection &curr_connection = active_connections.at(curr_socket);
-				// Read buffer
-				if(events[i].events & EPOLLIN)
-				{
-					std::cout << "Inside the read\n";
-					// instanciate current transaction if does not exist yet
-					if (curr_connection.current_transaction == NULL)
-						curr_connection.current_transaction = new HttpTransaction(curr_connection.server_config);
-					
-					int status = curr_connection.read_full_recv();
-					if(status == READ_ERROR)
-					{
-						std::cout << "CLEANING IN THE 'READ_ERROR'\n";
-						clean_connection(epollfd, curr_connection);
-						continue;
-					}
-					curr_connection.update_last_activity();
-					curr_connection.current_transaction->process_request(epollfd, curr_socket);
-				}
-				if(events[i].events & EPOLLOUT)
-				{
-					if (curr_connection.current_transaction == NULL)
-						continue;
-					curr_connection.send_response();
-					curr_connection.update_last_activity();
-					if (curr_connection.current_transaction->state == curr_connection.current_transaction->COMPLETE)
-					{
-						delete curr_connection.current_transaction;
-						curr_connection.current_transaction = NULL;
-						change_socket_epollin(epollfd, curr_socket);
-					}
-				}
+				conn_sock = events[i].data.fd;
+
 				if (events[i].events & (EPOLLERR | EPOLLHUP | EPOLLRDHUP))
-					clean_connection(epollfd, curr_connection);
+				{
+					clean_connection(epollfd, conn_sock);
+					continue;
+				}
+				if(events[i].events & EPOLLIN)
+					read_handler(epollfd, conn_sock);
+				if(events[i].events & EPOLLOUT)
+					send_handler(epollfd, conn_sock);
 			}
 		}
+		close_inactive_connections(epollfd);
 	}
 }
 
-void Server::clean_connection(int epollfd, Connection &curr_connection)
+void	Server::read_handler(int epollfd,  int socketfd)
 {
-	if (curr_connection.current_transaction != NULL)
+	std::cout << "Inside the read\n";
+	if (active_connections.find(socketfd) == active_connections.end())
+		return;
+	Connection &curr_connection = active_connections.at(socketfd);
+
+	// instanciate current transaction if does not exist yet
+	if (curr_connection.current_transaction == NULL)
+		curr_connection.current_transaction = new HttpTransaction(curr_connection.server_config);
+	
+	curr_connection.update_last_activity();
+	int status = curr_connection.read_full_recv();
+	if(status == READ_ERROR)
+	{
+		std::cout << "CLEANING IN THE 'READ_ERROR'\n";
+		clean_connection(epollfd, socketfd);
+		return;
+	}
+	curr_connection.insert_keep_alive_header();
+	curr_connection.current_transaction->process_request(epollfd, socketfd);	
+}
+
+void	Server::send_handler(int epollfd,  int socketfd)
+{
+	if (active_connections.find(socketfd) == active_connections.end())
+		return;
+	Connection &curr_connection = active_connections.at(socketfd);
+
+	if (curr_connection.current_transaction == NULL)
+		return;
+	
+	curr_connection.update_last_activity();
+	curr_connection.send_response();
+	
+	if (curr_connection.current_transaction->state == curr_connection.current_transaction->COMPLETE)
+	{
+		if(curr_connection.get_keep_alive() == false)
+		{
+			clean_connection(epollfd, socketfd);
+			return;
+		}
 		delete curr_connection.current_transaction;
-	remove_socket_epoll(epollfd, curr_connection.socket_fd);
-	active_connections.erase(curr_connection.socket_fd);
-	close(curr_connection.socket_fd);
+		curr_connection.current_transaction = NULL;
+		change_socket_epollin(epollfd, socketfd);
+	}
+}
+
+void Server::clean_connection(int epollfd, int socketfd)
+{
+	std::map<int, Connection>::iterator it = active_connections.find(socketfd);
+
+	if (it == active_connections.end())
+		return;
+	
+	if (it->second.current_transaction !=NULL)
+		delete it->second.current_transaction;
+	remove_socket_epoll(epollfd, socketfd);
+	close(socketfd);
+	active_connections.erase(it);
 }
 
 void	Server::close_inactive_connections(int epollfd)
@@ -213,7 +246,11 @@ void	Server::close_inactive_connections(int epollfd)
 		if(it->second.is_timed_out(TIMEOUT_SECONDS))
 		{
 			std::cout << "Timeout of Connection in socket " << it->second.socket_fd <<std::endl;
-			clean_connection(epollfd, it->second);
+			clean_connection(epollfd, it->second.socket_fd);
+			if (active_connections.size() == 0)
+				break;
+			it = active_connections.begin();
+			it_end = active_connections.end();
 		}
 	}
 }
@@ -243,4 +280,3 @@ std::ostream& operator<<(std::ostream& os, const Server& s) {
 	os << "||||||||||||||||||||||||||||||||||||||||\n";
 	return os;
 }
-

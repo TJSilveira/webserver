@@ -11,6 +11,8 @@ HttpResponse::~HttpResponse()
 
 void	HttpResponse::serialize_response()
 {
+	add_header("Content-length", ft_int_to_string(_body.size()));
+
 	_response_buffer += this->_version;
 	_response_buffer += " ";
 	_response_buffer += ft_int_to_string(this->_status_code);
@@ -23,7 +25,7 @@ void	HttpResponse::serialize_response()
 		_response_buffer += "Internal Server Error";
 
 	_response_buffer += "\r\n";
-	_response_buffer += get_contentlength_header();
+	_response_buffer += serialize_headers();
 	_response_buffer += "\r\n";
 	_response_buffer += this->_body;
 	std::cout << "Response: " << _response_buffer << std::endl;
@@ -35,14 +37,20 @@ void	HttpResponse::build_response(int status_code)
 	serialize_response();
 }
 
-std::string	HttpResponse::get_contentlength_header()
+std::string	HttpResponse::serialize_headers()
 {
-	std::string contentlength_header;
+	std::string headers_str;
+	std::map<std::string, std::string>::iterator it = _headers.begin();
+	std::map<std::string, std::string>::iterator it_end = _headers.end();
 
-	contentlength_header += "Content-length: ";
-	contentlength_header += ft_int_to_string(_body.size());
-	contentlength_header += "\r\n";
-	return(contentlength_header);
+	for (; it != it_end; it++)
+	{
+		headers_str += it->first;
+		headers_str += ": ";
+		headers_str += it->second;
+		headers_str += "\r\n";
+	}
+	return(headers_str);
 }
 
 void	HttpResponse::set_status(int code)

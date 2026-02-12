@@ -54,7 +54,7 @@ int accept_conn_socket(int listen_sock)
 
 	if (sockfd == -1) {
 		perror("accept");
-		exit(EXIT_FAILURE);
+		return -1;
 	}
 
 	if (setnonblocking(sockfd) == -1)

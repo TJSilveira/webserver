@@ -17,15 +17,20 @@ class Connection
 {
 private:
 	struct timeval	last_activity;
+	bool			keep_alive;
 public:
 	Connection(int socket_fd, const VirtualServer* server_config);
 	~Connection();
 
 	void	close_connection();
 	void	update_last_activity();
+	void	insert_keep_alive_header();
 	bool	is_timed_out(int timeout_seconds) const;
 	int 	read_full_recv();
 	void	send_response();
+
+	// Getters
+	bool	get_keep_alive();
 
 	int						socket_fd;
 	const VirtualServer*	server_config;

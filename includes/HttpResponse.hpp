@@ -29,7 +29,7 @@ public:
 
 
 	void	add_header(const std::string& key, const std::string& value);
-	std::string	get_contentlength_header();
+	std::string	serialize_headers();
 	void	serialize_response();
 	void	build_response(int status_code);
 

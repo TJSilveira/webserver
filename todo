@@ -1,8 +1,7 @@
 Current:
-Keep connection alive or close it according to the header: Connection: Keep-Alive vs Close -> Tiago
+Read POST requests that come with different Content-Type headers (`multipart/form-data` vs `image/png`, `text/plain`,...) -> Tiago
 
 Next steps:
-Read POST requests that come with different Content-Type headers (`multipart/form-data` vs `image/png`, `text/plain`,...) 
 Add CGI capabilities (pipe, execve,...)
 Add upload capabilities
 Add Http redirections
@@ -11,7 +10,6 @@ Enforce maximum data exchange
 Understand how and when to Chunk http responses
 Add signalhandling to gracefully shutdown
 Improve logging
-Refactor epoll loop into smaller components
 Stress test the server
 
 Nice to haves:
@@ -28,3 +26,5 @@ Add routing + customize the return of the server according to location settings 
 Create the static content -> Tiago
 Create the error pages -> Tiago
 Add timeout to sockets -> Tiago
+Keep connection alive or close it according to the header: Connection: Keep-Alive vs Close -> Tiago
+Refactor epoll loop into smaller components -> Tiago

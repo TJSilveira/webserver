@@ -1,6 +1,7 @@
 #include "../includes/Connection.hpp"
 
 Connection::Connection(int socket_fd, const VirtualServer* server_config):
+	keep_alive(true),
 	socket_fd(socket_fd),
 	server_config(server_config),
 	current_transaction(NULL)
@@ -15,6 +16,31 @@ Connection::~Connection()
 		delete current_transaction;
 	}
 }
+
+void	Connection::insert_keep_alive_header()
+{
+	if (current_transaction == NULL)
+		return;
+
+	if(current_transaction->request.headers.count("Connection"))
+	{
+		if (current_transaction->request.headers.at("Connection") == "keep-alive")
+			keep_alive = true;
+		else
+			keep_alive = false;
+	}
+
+	if (keep_alive == true)
+		current_transaction->response.add_header("Connection", "keep-alive");
+	else
+		current_transaction->response.add_header("Connection", "close");
+}
+
+bool	Connection::get_keep_alive()
+{
+	return (keep_alive);
+}
+
 
 void	Connection::update_last_activity()
 {
