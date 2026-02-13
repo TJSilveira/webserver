@@ -22,7 +22,7 @@ HttpRequest::~HttpRequest()
 {
 }
 
-void	HttpRequest::add_method(const std::string &input)
+int	HttpRequest::add_method(const std::string &input)
 {
 	std::vector<std::string>::iterator method_found;
 
@@ -30,11 +30,10 @@ void	HttpRequest::add_method(const std::string &input)
 	if (method_found != HttpRequest::methods.end())
 	{
 		this->method = input;
+		return (1);
 	}
 	else
-	{
-		// TODO: Send 400 Bad request + close the connection
-	}
+		return (-1);
 }
 
 std::ostream& operator<<(std::ostream& os, const HttpRequest& req) {

@@ -17,7 +17,7 @@ public:
 
 	static std::vector<std::string>	methods;
 
-	void	add_method(const std::string &method);
+	int	add_method(const std::string &method);
 
 	std::string	method;
 	std::string	uri;

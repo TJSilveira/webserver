@@ -1,12 +1,11 @@
 Current:
-Enforce maximum data exchange -> Tiago
+Add signalhandling to gracefully shutdown  & overall error handling -> Tiago
 Add CGI capabilities (pipe, execve,...) -> Andrei
 
 Next steps:
 Add upload capabilities
 Add Delete method implementation
 Understand how and when to Chunk http responses
-Add signalhandling to gracefully shutdown
 Improve logging
 Stress test the server
 
@@ -29,3 +28,4 @@ Refactor epoll loop into smaller components -> Tiago
 Read POST requests that come with different Content-Type headers (`multipart/form-data` vs `image/png`, `text/plain`,...) -> Tiago
 Add Http redirections -> Tiago
 Add alias redirections -> Tiago
+Enforce maximum data exchange -> Tiago

@@ -39,6 +39,7 @@ public:
 	HttpRequest		request;
 	HttpResponse	response;
 	const VirtualServer	*vir_server;
+	const Location		*location;
 
 	enum State {
 		PARSING_REQ_METHOD,
@@ -59,6 +60,7 @@ public:
 		PARSING_CHUNCKED_DONE,
 		PARSING_CHUNCKED_FINAL_CR,
 		PARSING_ERROR,
+		ERROR_EXCEEDS_LIMIT,
 		PROCESSING,
 		WAITING_CGI,
 		SENDING,

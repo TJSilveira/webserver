@@ -5,6 +5,7 @@ HttpTransaction::HttpTransaction(const VirtualServer *vir_server):
 			parse_chuncked_bytes_to_read(0),
 			parse_is_last_chunck(false), 
 			vir_server(vir_server),
+			location(NULL),
 			state(PARSING_REQ_METHOD) {}
 
 HttpTransaction::~HttpTransaction()
@@ -21,7 +22,8 @@ void HttpTransaction::parse(const std::string &raw)
 			if (raw.at(i) == ' ')
 			{
 				this->state = PARSING_REQ_URI;
-				this->request.add_method(temp);
+				if(this->request.add_method(temp) == -1)
+					this->state = PARSING_ERROR;
 				temp.clear();
 			}
 			else
@@ -49,7 +51,12 @@ void HttpTransaction::parse(const std::string &raw)
 			break;
 		case PARSING_REQ_LINE_CR:
 			if (raw.at(i) == '\n')
+			{
 				this->state = PARSING_HEADER_KEY;
+				this->location = find_location();
+				if (this->location == NULL)
+					this->state = PARSING_ERROR;
+			}
 			else
 				this->state = PARSING_ERROR;
 			break;
@@ -105,6 +112,12 @@ void HttpTransaction::parse(const std::string &raw)
 		case PARSING_HEADER_FINAL_CR:
 			if (raw.at(i) == '\n')
 			{
+				if(this->request.headers.count("Content-Length") == 1 && 
+					static_cast<size_t>(atoi(this->request.headers.at("Content-Length").c_str())) > location->client_max_body_size)
+				{
+					this->state = ERROR_EXCEEDS_LIMIT;
+					break;
+				}
 				if(this->request.headers.count("Content-Length") == 1)
 					this->state = PARSING_BODY;
 				else if(this->request.headers.count("Transfer-Encoding") == 1 &&
@@ -151,7 +164,6 @@ void HttpTransaction::parse(const std::string &raw)
 			break;
 		case PARSING_CHUNCKED_SIZE_CR:
 			parse_chuncked_bytes_to_read = extract_hexa_to_int(parse_chuncked_size_str);
-			std::cout <<"This is the size: " << parse_chuncked_bytes_to_read << "\n";
 			if (parse_chuncked_bytes_to_read == 0)
 				parse_is_last_chunck = true;
 			
@@ -188,11 +200,15 @@ void HttpTransaction::parse(const std::string &raw)
 		case PARSING_CHUNCKED_FINAL_CR:
 			if (raw.at(i) == '\n')
 			{
-				std::cout << "Inside the final PARSING_CHUNCKED_FINAL_CR\n";
+				if (request.body.size() > location->client_max_body_size)
+				{
+					this->state = ERROR_EXCEEDS_LIMIT;
+					break;
+				}
+				
 				if (parse_is_last_chunck == true)
 				{
 					this->state = PROCESSING;
-					std::cout << "This is the state of body at the end of the chuncked parsing" << request.body << std::endl;
 				}
 				else
 					this->state = PARSING_CHUNCKED_SIZE;
@@ -206,7 +222,7 @@ void HttpTransaction::parse(const std::string &raw)
 	}
 }
 
-const Location *HttpTransaction::find_location()
+const Location* HttpTransaction::find_location()
 {
 	const Location *matched_location = NULL;
 	size_t size_best_match = 0;
@@ -224,7 +240,7 @@ const Location *HttpTransaction::find_location()
 			}
 		}
 	}
-	return (matched_location);
+	return(matched_location);
 }
 
 bool is_allowed_method(const Location *matched_location, const std::string& method)
@@ -246,15 +262,14 @@ void	HttpTransaction::process_request(int epollfd, int curr_socket)
 	if (state == PROCESSING)
 	{
 		// 1. Find Location
-		const Location *matched_location = find_location();
-		if (matched_location == NULL)
+		if (location == NULL)
 		{
 			build_error_reponse(404);
 			change_socket_epollout(epollfd, curr_socket);
 			return;
 		}
 		// 2. Validate Method
-		if (is_allowed_method(matched_location, request.method) == false)
+		if (is_allowed_method(location, request.method) == false)
 		{
 			build_error_reponse(405);
 			change_socket_epollout(epollfd, curr_socket);
@@ -262,15 +277,15 @@ void	HttpTransaction::process_request(int epollfd, int curr_socket)
 		}
 		// 3. Build the response. The potential options for response are:
 		// 3.1. Return Redirections
-		if (matched_location->return_redir.first != 0)
+		if (location->return_redir.first != 0)
 		{
-			response.add_header("Location", matched_location->return_redir.second);
-			response.build_response(matched_location->return_redir.first);
+			response.add_header("Location", location->return_redir.second);
+			response.build_response(location->return_redir.first);
 			change_socket_epollout(epollfd, curr_socket);
 			return;
 		}
 		// 3.2. Alias to get files from different location
-		else if (matched_location->alias.size() != 0)
+		else if (location->alias.size() != 0)
 		{
 			std::string		file_name;
 			std::string		final_path;
@@ -281,9 +296,9 @@ void	HttpTransaction::process_request(int epollfd, int curr_socket)
 			if (len_file_name != 0)
 				file_name = std::string(request.uri, request.uri.find_last_of('/') + 1, len_file_name);
 			
-			final_path = "." + matched_location->alias + file_name;
+			final_path = "." + location->alias + file_name;
 			if (stat(final_path.c_str(), &s) == 0)
-				build_response_found_resource(matched_location, s, final_path);
+				build_response_found_resource(location, s, final_path);
 			else
 				build_error_reponse(404);
 			change_socket_epollout(epollfd, curr_socket);
@@ -297,10 +312,10 @@ void	HttpTransaction::process_request(int epollfd, int curr_socket)
 		{
 			std::string		final_path;
 			struct stat		s;
-			final_path = "." + matched_location->root + request.uri;
+			final_path = "." + location->root + request.uri;
 
 			if (stat(final_path.c_str(), &s) == 0)
-				build_response_found_resource(matched_location, s, final_path);
+				build_response_found_resource(location, s, final_path);
 			else
 				build_error_reponse(404);
 			change_socket_epollout(epollfd, curr_socket);
@@ -311,6 +326,12 @@ void	HttpTransaction::process_request(int epollfd, int curr_socket)
 	{
 		std::cout << "Inside Parsing Error\n";
 		build_error_reponse(400);
+		change_socket_epollout(epollfd, curr_socket);
+	}
+	else if(state == ERROR_EXCEEDS_LIMIT)
+	{
+		std::cout << "Inside Parsing Error\n";
+		build_error_reponse(413);
 		change_socket_epollout(epollfd, curr_socket);
 	}
 }
