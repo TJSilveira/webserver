@@ -76,7 +76,9 @@ Location::Location(const t_location &location_config, const VirtualServer &vir_s
 		}
 		else if (curr_directive.name == "cgi_ext")
 		{
-			this->cgi_ext = curr_directive.args;
+			if (curr_directive.args.size() != 1)
+				throw ConfigError("cgi_ext must only have one path assigned", curr_directive.name);
+			this->cgi_ext = curr_directive.args.at(0);
 		}
 		else if (curr_directive.name == "cgi_path")
 		{
@@ -110,15 +112,10 @@ std::ostream& operator<<(std::ostream& os, const Location& loc) {
 	os << "Client Max Body Size: " << loc.client_max_body_size << "\n";
 	os << "Upload Store: " << loc.upload_store << "\n";
 	os << "CGI Path: " << loc.cgi_path << "\n";
+	os << "CGI Extension: " << loc.cgi_ext << "\n";
 
 	os << "Index Files: ";
 	for (std::vector<std::string>::const_iterator it = loc.index.begin(); it != loc.index.end(); ++it) {
-		os << *it << " ";
-	}
-	os << "\n";
-
-	os << "CGI Extensions: ";
-	for (std::vector<std::string>::const_iterator it = loc.cgi_ext.begin(); it != loc.cgi_ext.end(); ++it) {
 		os << *it << " ";
 	}
 	os << "\n";

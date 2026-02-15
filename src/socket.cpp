@@ -92,6 +92,17 @@ void add_socket_epoll(int epollfd, int conn_sock)
 	}
 }
 
+void add_cgifd_epoll(int epollfd, int cgifd)
+{
+	struct epoll_event ev;
+	ev.events = EPOLLIN | EPOLLHUP;
+	ev.data.fd = cgifd;
+	if (epoll_ctl(epollfd, EPOLL_CTL_ADD, cgifd, &ev) == -1) {
+		perror("epoll_ctl: problem connecting cgifd to epoll");
+		exit(EXIT_FAILURE);
+	}
+}
+
 void remove_socket_epoll(int epollfd, int conn_sock)
 {
 	struct epoll_event ev;

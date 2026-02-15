@@ -23,6 +23,7 @@
 #include <set>
 #include <map>
 #include <sys/epoll.h>
+#include <sys/wait.h>
 
 #include "../includes/Parser.hpp"
 #include "../includes/ConfigError.hpp"
@@ -31,7 +32,6 @@
 #include "../includes/Connection.hpp"
 
 #define MAX_EVENTS 128
-
 
 class Server {
 private:
@@ -47,6 +47,7 @@ public:
 	// Handlers
 	void	read_handler(int epollfd, int socketfd);
 	void	send_handler(int epollfd,  int socketfd);
+	void	cgi_read_handler(int epollfd,  int cgifd);
 
 	static std::vector<std::string> directives;
 	static std::vector<std::string> context;
@@ -56,7 +57,8 @@ public:
 
 	// Listening sockets
 	std::map<int, const VirtualServer*> listening_sockfds;
-	std::map<int, Connection>	active_connections;
+	std::map<int, Connection>	active_connections; // cgi_fd -> socket_fd
+	std::map<int, int>	cgi_output_map; // cgi_fd -> socket_fd
 
 	// Server Configs
 	std::string root;

@@ -3,25 +3,25 @@
 /*                                                        :::      ::::::::   */
 /*   CgiHandler.cpp                                     :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: amoiseik <amoiseik@student.42.fr>          +#+  +:+       +#+        */
+/*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/12 15:26:06 by amoiseik          #+#    #+#             */
-/*   Updated: 2026/02/13 19:09:56 by amoiseik         ###   ########.fr       */
+/*   Updated: 2026/02/14 21:56:14 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "CgiHandler.hpp"
+#include "../includes/CgiHandler.hpp"
+#include "../includes/Connection.hpp"
+#include "../includes/Location.hpp"
+#include "../includes/HttpTransaction.hpp"
 #include <sys/wait.h>
 #include <cstdlib>
 #include <sstream>
-#include "Connection.hpp"
-#include "Location.hpp"
-#include "HttpTransaction.hpp"
 #include <arpa/inet.h>
 
-std::map<std::string, std::string>	CgiHandler::_buildEnvMap(const Connection& conn, const Location& loc) {
+std::map<std::string, std::string>	CgiHandler::_buildEnvMap(const HttpTransaction& tran, int curr_socket) {
 	std::map<std::string, std::string> env;
-	HttpRequest& req = conn.current_transaction->request;
+	const HttpRequest& req = tran.request;
 
 	// 1. Basic variable
 	env["GATEWAY_INTERFACE"] = "CGI/1.1";
@@ -29,9 +29,9 @@ std::map<std::string, std::string>	CgiHandler::_buildEnvMap(const Connection& co
 	env["SERVER_SOFTWARE"] = "Webserv/1.0";
 	
 	// 2. Server data 
-	env["SERVER_NAME"] = conn.server_config->server_name;
+	env["SERVER_NAME"] = tran.vir_server->server_name;
 	std::stringstream ss_port;
-	ss_port << conn.server_config->listen;
+	ss_port << tran.vir_server->listen;
 	env["SERVER_PORT"] = ss_port.str();
 
 	// 3. Dividing URI on PATH_INFO and QUERY_STRING
@@ -58,7 +58,7 @@ std::map<std::string, std::string>	CgiHandler::_buildEnvMap(const Connection& co
 	env["CONTENT_TYPE"] = (it != req.headers.end()) ? it->second : "";
 
 	// 5. Pathes
-	std::string root = loc.root.empty() ? conn.server_config->root : loc.root;
+	const std::string root = tran.location->root.empty() ? tran.vir_server->root : tran.location->root;
 	env["DOCUMENT_ROOT"] = root;
 	env["PATH_TRANSLATED"] = root + env["PATH_INFO"];
 	env["SCRIPT_NAME"] = env["PATH_INFO"];
@@ -74,7 +74,7 @@ std::map<std::string, std::string>	CgiHandler::_buildEnvMap(const Connection& co
 	socklen_t addr_len = sizeof(addr);
 	std::string remote_addr = "127.0.0.1"; // default
 
-	if (getpeername(conn.socket_fd, (struct sockaddr *)&addr, &addr_len) == 0) {
+	if (getpeername(curr_socket, (struct sockaddr *)&addr, &addr_len) == 0) {
 		remote_addr = inet_ntoa(addr.sin_addr);
 	}
 	env["REMOTE_ADDR"] = remote_addr;
@@ -118,13 +118,17 @@ void	CgiHandler::_freeEnv(char** envp) {
 CgiHandler::CgiHandler() {}
 CgiHandler::~CgiHandler() {}
 
-CgiInfo	CgiHandler::execute(const std::string& interpreterPath, 
+struct CgiInfo	CgiHandler::execute(const std::string& interpreterPath, 
 							const std::string& scriptPath, 
-							const std::string& bodyFilePath, 
-							char** envp) {
+							const std::string& bodyFilePath,
+							const HttpTransaction &tran,
+							int curr_socket) {
 	CgiInfo	info;
 	int		pipe_out[2];
 
+	std::map<std::string, std::string> envp_map = _buildEnvMap(tran, curr_socket);
+	char** envp = _prepareEnv(envp_map);
+	
 	if (pipe(pipe_out) == -1) 
 		return info;
 
@@ -145,9 +149,12 @@ CgiInfo	CgiHandler::execute(const std::string& interpreterPath,
 	}
 	//CHILD PROCESS
 	if (info.pid == 0) {
+		std::cout << "IN CHILD PROCESS\n";
 		
-		// 1. Read body form file
+		// 1. Read body from file
 		if (!bodyFilePath.empty()) {
+			std::cout << "IN CHILD PROCESS: in bodyfilepath\n";
+
 			int fd_in = open(bodyFilePath.c_str(), O_RDONLY);
 			if (fd_in != -1) {
 				dup2(fd_in, STDIN_FILENO);
@@ -156,6 +163,7 @@ CgiInfo	CgiHandler::execute(const std::string& interpreterPath,
 				exit(1);
 			}
 		} else {
+			std::cout << "IN CHILD PROCESS: in null\n";
 			int dev_null = open("/dev/null", O_RDONLY);
 			if (dev_null != -1) {
 				dup2(dev_null, STDIN_FILENO);
@@ -163,6 +171,7 @@ CgiInfo	CgiHandler::execute(const std::string& interpreterPath,
 			}
 		}
 
+		std::cout << "IN CHILD PROCESS: before dup2\n";
 		dup2(pipe_out[1], STDOUT_FILENO);
 		close(pipe_out[0]);
 		close(pipe_out[1]);
@@ -184,6 +193,7 @@ CgiInfo	CgiHandler::execute(const std::string& interpreterPath,
 	info.pipe_fd = pipe_out[0]; // need to add this fd to the poll loop
 	info.is_started = true;
 
+	std::cout << "IN PARENT PROCESS: just before return\n";
 	return info;
 }
 

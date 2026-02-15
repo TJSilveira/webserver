@@ -1,8 +1,9 @@
 Current:
+Change errno usage in the epoll recv and send
 Add signalhandling to gracefully shutdown  & overall error handling -> Tiago
-Add CGI capabilities (pipe, execve,...) -> Andrei
 
 Next steps:
+Add limits to the number of sockets that are checked by epoll
 Add upload capabilities
 Add Delete method implementation
 Understand how and when to Chunk http responses
@@ -29,3 +30,4 @@ Read POST requests that come with different Content-Type headers (`multipart/for
 Add Http redirections -> Tiago
 Add alias redirections -> Tiago
 Enforce maximum data exchange -> Tiago
+Add CGI capabilities (pipe, execve,...) -> Andrei

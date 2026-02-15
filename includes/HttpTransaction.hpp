@@ -4,6 +4,7 @@
 #include "HttpResponse.hpp"
 #include "HttpRequest.hpp"
 #include "VirtualServer.hpp"
+#include "CgiHandler.hpp"
 #include "socket.hpp"
 #include "utils.hpp"
 
@@ -32,6 +33,8 @@ public:
 	std::string		generate_error_page(int error_code);
 
 	void			build_response_found_resource(const Location* matched_location, struct stat &s, std::string &final_path);
+	void			prepare_response(int epollfd, int curr_socket, std::string final_path);
+
 	std::string		build_autoindex_string(std::string &dir_path);
 
 	void			mark_as_complete();
@@ -40,6 +43,7 @@ public:
 	HttpResponse	response;
 	const VirtualServer	*vir_server;
 	const Location		*location;
+	struct CgiInfo	cgi_info;
 
 	enum State {
 		PARSING_REQ_METHOD,

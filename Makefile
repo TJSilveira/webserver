@@ -9,6 +9,7 @@ OBJS_DIR		= ./objs/
 
 SRC_FILES		=	main.cpp \
 					Connection.cpp \
+					CgiHandler.cpp \
 					HttpRequest.cpp \
 					HttpResponse.cpp \
 					HttpTransaction.cpp \

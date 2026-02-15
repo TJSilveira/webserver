@@ -6,7 +6,7 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/01/14 17:29:14 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/10 16:34:54 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/14 09:32:30 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -68,4 +68,19 @@ std::string file_to_string(std::ifstream &file)
 {
 	return (std::string(std::istreambuf_iterator<char>(file),
 						std::istreambuf_iterator<char>()));
+}
+
+bool ft_ends_with(const std::string &str, const std::string &to_search)
+{
+	size_t len_str = str.size();
+	size_t len_to_search = to_search.size();
+
+	if (len_str < len_to_search)
+		return (false);
+
+	std::cout << "After here\n";
+	if (str.substr(len_str - len_to_search, len_to_search) == to_search)
+		return (true);
+	else
+		return (false);
 }

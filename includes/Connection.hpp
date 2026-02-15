@@ -7,6 +7,7 @@
 #include <sys/socket.h>
 #include <sys/time.h>
 #include "HttpTransaction.hpp"
+#include "CgiHandler.hpp"
 
 #define BUFFER_SIZE 8192
 #define CLIENT_CLOSE_SOCKET 1

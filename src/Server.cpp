@@ -137,7 +137,6 @@ void	Server::run_server()
 		}
 	}
 
-	// TODO: Add limits to the number of sockets that are checked by epoll
 	while(true) {
 		nfds = epoll_wait(epollfd, events, MAX_EVENTS, 1000);
 		if (nfds == -1) {
@@ -146,6 +145,7 @@ void	Server::run_server()
 		}
 
 		for (int i = 0; i < nfds; ++i) {
+			std::map<int, int>::iterator it_cgi = cgi_output_map.find(events[i].data.fd);
 			std::map<int, const VirtualServer*>::iterator it_listen_sock = listening_sockfds.find(events[i].data.fd);
 			if (it_listen_sock != listening_sockfds.end()){
 				listen_sock = it_listen_sock->first;
@@ -155,7 +155,13 @@ void	Server::run_server()
 					add_socket_epoll(epollfd, conn_sock);
 					active_connections.insert(std::make_pair(conn_sock, Connection(conn_sock, it_listen_sock->second)));
 				}
-			} else {
+			}
+			else if(it_cgi != cgi_output_map.end())
+			{
+				cgi_read_handler(epollfd, it_cgi->first);
+			}
+			else
+			{
 				std::cout << "Connection socket that needs attention: " << events[i].data.fd << std::endl;
 				conn_sock = events[i].data.fd;
 
@@ -193,14 +199,50 @@ void	Server::read_handler(int epollfd,  int socketfd)
 		clean_connection(epollfd, socketfd);
 		return;
 	}
+
 	curr_connection.insert_keep_alive_header();
 	curr_connection.current_transaction->process_request(epollfd, socketfd);
+	if (curr_connection.current_transaction->state == HttpTransaction::WAITING_CGI)
+	{
+		std::cout << "This is pipe_fd " << curr_connection.current_transaction->cgi_info.pipe_fd;
+		std::cout << "; This is socketfd " << curr_connection.socket_fd << std::endl;
+
+		cgi_output_map.insert(std::make_pair(curr_connection.current_transaction->cgi_info.pipe_fd,
+										curr_connection.socket_fd));
+	}
+
 	std::cout << "==== THIS IS THE REQUEST ====\n";
 	std::cout << curr_connection.current_transaction->request;
 	std::cout << "==== END OF THE REQUEST ====\n";
 	std::cout << "==== THIS IS THE response ====\n";
 	std::cout << curr_connection.current_transaction->response;
 	std::cout << "==== END OF THE response ====\n";
+}
+
+void	Server::cgi_read_handler(int epollfd,  int cgifd)
+{
+	int status;
+	char buf[4096];
+	int client_fd = cgi_output_map.at(cgifd);
+
+	Connection &conn = active_connections.at(client_fd);
+	ssize_t	n = read(cgifd, buf, sizeof(buf));
+	if (n > 0)
+	{
+		conn.current_transaction->cgi_info.buffer.append(buf, n);
+		return;
+	}
+	
+	epoll_ctl(epollfd, EPOLL_CTL_DEL, cgifd, NULL);
+	close(cgifd);
+	cgi_output_map.erase(cgifd);
+
+	waitpid(cgifd, &status, WNOHANG);
+
+	conn.current_transaction->response.set_body(conn.current_transaction->cgi_info.buffer);
+	conn.current_transaction->response.build_response(200);
+	conn.current_transaction->state = HttpTransaction::SENDING;
+	change_socket_epollout(epollfd, client_fd);
 }
 
 void	Server::send_handler(int epollfd,  int socketfd)

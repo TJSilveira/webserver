@@ -21,6 +21,7 @@ int	setnonblocking(int sock);
 
 // epoll
 void add_socket_epoll(int epollfd, int conn_sock);
+void add_cgifd_epoll(int epollfd, int cgifd);
 void remove_socket_epoll(int epollfd, int conn_sock);
 void change_socket_epollout(int epollfd, int conn_sock);
 void change_socket_epollin(int epollfd, int conn_sock);
