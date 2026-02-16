@@ -69,60 +69,43 @@ void	Connection::close_connection()
 int Connection::read_full_recv()
 {
 	std::string buffer;
-	while (true)
+	buffer.resize(BUFFER_SIZE);
+	ssize_t bytes_received = recv(socket_fd, &buffer[0], BUFFER_SIZE, 0);
+	std::cout << "This is the buffer: " << buffer << std::endl; 
+	if (bytes_received > 0)
 	{
-		buffer.clear();
-		buffer.resize(BUFFER_SIZE);
-		ssize_t bytes_received = recv(socket_fd, &buffer[0], BUFFER_SIZE, 0);
-		std::cout << "This is the buffer: " << buffer << std::endl; 
-		if (bytes_received > 0)
-		{
-			buffer.resize(bytes_received);
-			current_transaction->parse(buffer);
-		}
-		else if(bytes_received == 0) // Client closed write side OR there is nothing more to read
-		{
-			return (CLIENT_CLOSE_SOCKET);
-		}
-		else if (bytes_received < 0 && ((errno == EAGAIN) || (errno == EWOULDBLOCK)))
-		{
-			return (BUFFER_READ);
-		}
-		else
-		{
-			return (READ_ERROR);
-		}
+		buffer.resize(bytes_received);
+		current_transaction->parse(buffer);
+		return (BUFFER_READ);
 	}
-	return (READ_ERROR);
+	else if(bytes_received == 0) // Client closed write side OR there is nothing more to read
+		return (SOCKET_FINISHED_READ);
+	else
+		return (READ_ERROR);
 }
 
 void	Connection::send_response()
 {
 	HttpResponse& response = this->current_transaction->response;
-	while (response._bytes_sent < response._response_buffer.size())
+	size_t	missing_bytes = response._response_buffer.size() - response._bytes_sent;
+
+	ssize_t current_sent_bytes = send(socket_fd,
+		&response._response_buffer[response._bytes_sent], 
+		missing_bytes, MSG_NOSIGNAL);
+
+	if (current_sent_bytes > 0)
 	{
-		size_t	missing_bytes = response._response_buffer.size() - response._bytes_sent;
-
-		ssize_t current_sent_bytes = send(socket_fd,
-			&response._response_buffer[response._bytes_sent], 
-			missing_bytes, MSG_NOSIGNAL);
-
-		if (current_sent_bytes > 0)
-		{
-			response._bytes_sent += current_sent_bytes;
-		}
-		else if (current_sent_bytes < 0 && ((errno == EAGAIN) || (errno == EWOULDBLOCK)))
-		{
-			current_transaction->mark_as_complete();
-			return;
-		}
-		else
-		{
-			// Fatal error
-			std::cerr << "Send error\n";
-			return;
-		}
+		response._bytes_sent += current_sent_bytes;
 	}
+	else
+	{
+		// Fatal error
+		std::cerr << "Send error\n";
+		return;
+	}
+	if (response._bytes_sent < response._response_buffer.size())
+		return;
+	
 	std::cout << "Finalized send\n";
 	current_transaction->mark_as_complete();
 }

@@ -6,7 +6,7 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/01/14 17:29:14 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/14 09:32:30 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/16 11:29:49 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -83,4 +83,9 @@ bool ft_ends_with(const std::string &str, const std::string &to_search)
 		return (true);
 	else
 		return (false);
+}
+
+void signal_hanlder(int signum)
+{
+	
 }

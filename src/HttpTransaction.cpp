@@ -295,7 +295,7 @@ void	HttpTransaction::process_request(int epollfd, int curr_socket)
 			len_file_name = std::max(static_cast<std::size_t>(0), request.uri.size() - request.uri.find_last_of('/') - 1);
 			if (len_file_name != 0)
 				file_name = std::string(request.uri, request.uri.find_last_of('/') + 1, len_file_name);
-			
+
 			final_path = "." + location->alias + file_name;
 			prepare_response(epollfd, curr_socket, final_path);
 		}

@@ -138,7 +138,7 @@ void	Server::run_server()
 	}
 
 	while(true) {
-		nfds = epoll_wait(epollfd, events, MAX_EVENTS, 1000);
+		nfds = epoll_wait(epollfd, events, MAX_EVENTS, 500);
 		if (nfds == -1) {
 			perror("epoll_wait");
 			exit(EXIT_FAILURE);
@@ -200,23 +200,23 @@ void	Server::read_handler(int epollfd,  int socketfd)
 		return;
 	}
 
-	curr_connection.insert_keep_alive_header();
-	curr_connection.current_transaction->process_request(epollfd, socketfd);
-	if (curr_connection.current_transaction->state == HttpTransaction::WAITING_CGI)
+	if (curr_connection.current_transaction->state == HttpTransaction::PROCESSING)
 	{
-		std::cout << "This is pipe_fd " << curr_connection.current_transaction->cgi_info.pipe_fd;
-		std::cout << "; This is socketfd " << curr_connection.socket_fd << std::endl;
-
-		cgi_output_map.insert(std::make_pair(curr_connection.current_transaction->cgi_info.pipe_fd,
-										curr_connection.socket_fd));
+		curr_connection.insert_keep_alive_header();
+		curr_connection.current_transaction->process_request(epollfd, socketfd);
+		if (curr_connection.current_transaction->state == HttpTransaction::WAITING_CGI)
+		{
+			cgi_output_map.insert(std::make_pair(curr_connection.current_transaction->cgi_info.pipe_fd,
+											curr_connection.socket_fd));
+		}
+		
+		std::cout << "==== THIS IS THE REQUEST ====\n";
+		std::cout << curr_connection.current_transaction->request;
+		std::cout << "==== END OF THE REQUEST ====\n";
+		std::cout << "==== THIS IS THE response ====\n";
+		std::cout << curr_connection.current_transaction->response;
+		std::cout << "==== END OF THE response ====\n";		
 	}
-
-	std::cout << "==== THIS IS THE REQUEST ====\n";
-	std::cout << curr_connection.current_transaction->request;
-	std::cout << "==== END OF THE REQUEST ====\n";
-	std::cout << "==== THIS IS THE response ====\n";
-	std::cout << curr_connection.current_transaction->response;
-	std::cout << "==== END OF THE response ====\n";
 }
 
 void	Server::cgi_read_handler(int epollfd,  int cgifd)

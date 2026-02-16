@@ -10,7 +10,7 @@
 #include "CgiHandler.hpp"
 
 #define BUFFER_SIZE 8192
-#define CLIENT_CLOSE_SOCKET 1
+#define SOCKET_FINISHED_READ 1
 #define BUFFER_READ 0
 #define READ_ERROR -1
 
