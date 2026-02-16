@@ -6,7 +6,7 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/12 15:26:21 by amoiseik          #+#    #+#             */
-/*   Updated: 2026/02/16 13:01:38 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/16 17:00:36 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,8 +27,8 @@ struct		CgiInfo
 	int		pipe_fd;
 	pid_t	pid;
 	bool	is_started;
-	std::string buffer;
-	std::string input_doc_path;
+	std::string	buffer;
+	std::string	input_doc_path;
 
 	CgiInfo(): pipe_fd(-1), pid(-1), is_started(false){}
 };

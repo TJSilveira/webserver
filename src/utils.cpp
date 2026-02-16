@@ -6,7 +6,7 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/01/14 17:29:14 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/16 11:32:37 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/16 18:15:14 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -80,7 +80,6 @@ bool	ft_ends_with(const std::string &str, const std::string &to_search)
 	len_to_search = to_search.size();
 	if (len_str < len_to_search)
 		return (false);
-	std::cout << "After here\n";
 	if (str.substr(len_str - len_to_search, len_to_search) == to_search)
 		return (true);
 	else

@@ -1,13 +1,15 @@
 Current:
-Add limits to the number of sockets that are checked by epoll
+Add upload capabilities -> Tiago
 
 Next steps:
-Add upload capabilities
 Add Delete method implementation
 Understand how and when to Chunk http responses
 Improve logging
 Add try catch blocks for parsing and lexer in main
 Stress test the server
+
+Maybe it is not necessary:
+Add limits to the number of sockets that are checked by epoll
 
 Nice to haves:
 Improve autoindex listing to make it prettier (we can include again the . and ..)

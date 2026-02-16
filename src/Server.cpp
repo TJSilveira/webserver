@@ -6,7 +6,7 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 12:23:47 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/16 15:35:58 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/16 16:58:30 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -161,7 +161,7 @@ void Server::run_server()
 	}
 	while (!g_stop)
 	{
-		nfds = epoll_wait(epollfd, events, MAX_EVENTS, 2000);
+		nfds = epoll_wait(epollfd, events, MAX_EVENTS, 100);
 		if (nfds == -1)
 		{
 			if (g_stop == 1)
@@ -171,10 +171,8 @@ void Server::run_server()
 		}
 		for (int i = 0; i < nfds; ++i)
 		{
-			std::map<int, int>::iterator it_cgi =
-				cgi_output_map.find(events[i].data.fd);
-			std::map<int, const VirtualServer *>::iterator it_listen_sock =
-				listening_sockfds.find(events[i].data.fd);
+			std::map<int, int>::iterator it_cgi =cgi_output_map.find(events[i].data.fd);
+			std::map<int, const VirtualServer *>::iterator it_listen_sock =	listening_sockfds.find(events[i].data.fd);
 			if (it_listen_sock != listening_sockfds.end())
 			{
 				listen_sock = it_listen_sock->first;
@@ -193,7 +191,7 @@ void Server::run_server()
 			}
 			else
 			{
-				// std::cout << "Connection socket that needs attention: " << events[i].data.fd << std::endl;
+				std::cout << "Connection socket that needs attention: " << events[i].data.fd << std::endl;
 				conn_sock = events[i].data.fd;
 				if (events[i].events & (EPOLLERR | EPOLLHUP | EPOLLRDHUP))
 				{
@@ -311,6 +309,11 @@ void Server::clean_connection(int epollfd, int socketfd)
 		delete it->second.current_transaction;
 		it->second.current_transaction = NULL;
 	}
+	// if(!it->second.current_transaction->cgi_info.input_doc_path.empty())
+	// {
+	// 	unlink(it->second.current_transaction->cgi_info.input_doc_path.c_str());
+	// 	it->second.current_transaction->cgi_info.input_doc_path.clear();
+	// }
 	remove_socket_epoll(epollfd, socketfd);
 	close(socketfd);
 	active_connections.erase(it);

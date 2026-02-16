@@ -6,7 +6,7 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 12:22:21 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/16 13:06:19 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/16 18:48:00 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -286,14 +286,14 @@ void HttpTransaction::process_request(int epollfd, int curr_socket)
 		// 1. Find Location
 		if (location == NULL)
 		{
-			build_error_reponse(404);
+			build_error_response(404);
 			change_socket_epollout(epollfd, curr_socket);
 			return ;
 		}
 		// 2. Validate Method
 		if (is_allowed_method(location, request.method) == false)
 		{
-			build_error_reponse(405);
+			build_error_response(405);
 			change_socket_epollout(epollfd, curr_socket);
 			return ;
 		}
@@ -314,67 +314,147 @@ void HttpTransaction::process_request(int epollfd, int curr_socket)
 			std::size_t len_file_name;
 			len_file_name =
 				std::max(static_cast<std::size_t>(0),
-							request.uri.size() - request.uri.find_last_of('/')
-								- 1);
+							request.uri.size() - request.uri.find_last_of('/') - 1);
 			if (len_file_name != 0)
-				file_name = std::string(request.uri,
-						request.uri.find_last_of('/') + 1, len_file_name);
+				file_name = std::string(request.uri,request.uri.find_last_of('/') + 1, len_file_name);
 			final_path = "." + location->alias + file_name;
 			prepare_response(epollfd, curr_socket, final_path);
 		}
 		else
 		{
 			std::string final_path;
+			
 			final_path = "." + location->root + request.uri;
+			std::cout << "This is cgi_ext: " << location->cgi_ext << std::endl;
+			if (!location->cgi_ext.empty() && ft_ends_with(final_path, location->cgi_ext))
+				final_path = build_cgi_path();
 			prepare_response(epollfd, curr_socket, final_path);
 		}
 	}
 	else if (state == PARSING_ERROR)
 	{
 		std::cout << "Inside Parsing Error\n";
-		build_error_reponse(400);
+		build_error_response(400);
 		change_socket_epollout(epollfd, curr_socket);
 	}
 	else if (state == ERROR_EXCEEDS_LIMIT)
 	{
 		std::cout << "Inside Parsing Error\n";
-		build_error_reponse(413);
+		build_error_response(413);
 		change_socket_epollout(epollfd, curr_socket);
 	}
 }
 
-void HttpTransaction::prepare_response(int epollfd, int curr_socket,
-		std::string final_path)
+std::string HttpTransaction::build_cgi_path()
+{
+	printf("----- Is CGI -----\n");
+	std::string file_name;
+	std::string final_path;
+	std::size_t len_file_name;
+	len_file_name =
+		std::max(static_cast<std::size_t>(0),
+					request.uri.size() - request.uri.find_last_of('/') - 1);
+	if (len_file_name != 0)
+		file_name = std::string(request.uri,request.uri.find_last_of('/') + 1, len_file_name);
+	final_path = "./var/www/cgi-bin/" + file_name;
+	printf("%s\n\n", final_path.c_str());
+	return (final_path);	
+}
+
+void HttpTransaction::prepare_response(int epollfd, int curr_socket, std::string final_path)
 {
 	struct stat	s;
-			CgiHandler cgi;
+	CgiHandler cgi;
 
 	if (stat(final_path.c_str(), &s) == 0)
 	{
-		if (location->cgi_ext.size() != 0 &&
-			ft_ends_with(final_path, location->cgi_ext) == true)
-		{
-			cgi_info = cgi.execute(location->cgi_path, final_path,
-					cgi_info.input_doc_path, *this, curr_socket);
-			std::cout << "Before if statement\n";
-			if (cgi_info.is_started == true)
-			{
-				add_cgifd_epoll(epollfd, cgi_info.pipe_fd);
-				std::cout << "Putting status to waitng cgi\n";
-				state = WAITING_CGI;
-				return ;
-			}
-			else
-				build_error_reponse(500);
-		}
-		else
-			build_response_found_resource(location, s, final_path);
+		if(request.method == "GET")
+			prepare_response_get(epollfd, curr_socket, final_path, s);
+		else if (request.method == "POST")
+			prepare_response_post(epollfd, curr_socket, final_path, s);
 	}
 	else
-		build_error_reponse(404);
+		build_error_response(404);
 	change_socket_epollout(epollfd, curr_socket);
 	state = COMPLETE;
 }
+
+void HttpTransaction::prepare_response_get(int epollfd, int curr_socket, std::string final_path,struct stat &s)
+{
+	CgiHandler cgi;
+
+	if (location->cgi_ext.size() != 0 &&
+		ft_ends_with(final_path, location->cgi_ext) == true)
+	{
+		cgi_info = cgi.execute(location->cgi_path, final_path,
+				cgi_info.input_doc_path, *this, curr_socket);
+		std::cout << "Before if statement\n";
+		if (cgi_info.is_started == true)
+		{
+			add_cgifd_epoll(epollfd, cgi_info.pipe_fd);
+			std::cout << "Putting status to waitng cgi\n";
+			state = WAITING_CGI;
+			return ;
+		}
+		else
+			build_error_response(500);
+	}
+	else
+		build_response_found_resource(location, s, final_path);
+}
+
+void HttpTransaction::prepare_response_post(int epollfd, int curr_socket, std::string final_path, struct stat &s)
+{
+	CgiHandler cgi;
+
+	if (location->cgi_ext.size() != 0 &&
+		ft_ends_with(final_path, location->cgi_ext) == true)
+	{
+		// create temp file
+		std::string temp_path = "./var/www/temp/webserv_upload_" + ft_int_to_string(getpid()) + "_" + ft_int_to_string(curr_socket)+ ".tmp";
+		std::cout << "THIS IS THE PATH THAT WE ARE GOING TO USE "<<  temp_path << std::endl;
+
+		int body_fd = open(temp_path.c_str(), O_CREAT | O_WRONLY | O_TRUNC, 0600);
+		if (body_fd == -1)
+		{
+			std::cout << "Problem in first if\n";
+			build_error_response(500);
+			return;
+    	}
+
+		// write request body into file
+		ssize_t written_size = write(body_fd, request.body.data(), request.body.size());
+		if (written_size != static_cast<ssize_t>(request.body.size()))
+		{
+			std::cout << "Problem in second if\n";
+			unlink(temp_path.c_str());
+			build_error_response(500);
+			return;
+		}
+		
+		cgi_info.input_doc_path = temp_path;
+
+		// execute cgi
+		cgi_info = cgi.execute(location->cgi_path, final_path,
+				cgi_info.input_doc_path, *this, curr_socket);
+		std::cout << "Before if statement\n";
+		if (cgi_info.is_started == true)
+		{
+			add_cgifd_epoll(epollfd, cgi_info.pipe_fd);
+			std::cout << "Putting status to waitng cgi\n";
+			state = WAITING_CGI;
+		}
+		else
+		{
+			std::cout << "Problem in else\n";
+			unlink(temp_path.c_str());
+			build_error_response(500);
+		}
+	}
+	else
+		build_response_found_resource(location, s, final_path);
+}
+
 
 void HttpTransaction::build_response_found_resource(
 	const Location *matched_location, struct stat &s, std::string &final_path)
@@ -400,14 +480,14 @@ void HttpTransaction::build_response_found_resource(
 			response.set_body(build_autoindex_string(final_path));
 			if (response.get_body().size() == 0)
 			{
-				build_error_reponse(500);
+				build_error_response(500);
 				return ;
 			}
 			response.build_response(200);
 		}
 		// Without any available indices or autoindex, we need to return an error
 		else
-			build_error_reponse(403);
+			build_error_response(403);
 	}
 	// If it is not a directory, it is a file
 	else
@@ -418,11 +498,11 @@ void HttpTransaction::build_response_found_resource(
 			response.build_response(200);
 		}
 		else
-			build_error_reponse(405);
+			build_error_response(405);
 	}
 }
 
-void HttpTransaction::build_error_reponse(int error_code)
+void HttpTransaction::build_error_response(int error_code)
 {
 	response.set_status(error_code);
 	response.set_body(generate_error_page(error_code));

@@ -6,7 +6,7 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/12 15:26:06 by amoiseik          #+#    #+#             */
-/*   Updated: 2026/02/16 13:04:05 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/16 19:06:12 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -136,8 +136,9 @@ struct CgiInfo CgiHandler::execute(const std::string &interpreterPath,
 	char	**envp;
 	int		fd_in;
 	int		dev_null;
-		char *argv[3];
+	char	*argv[3];
 
+	std::cout << "Inside CGI_HANDLER\n";
 	std::map<std::string, std::string> envp_map = _buildEnvMap(tran,
 			curr_socket);
 	envp = _prepareEnv(envp_map);
