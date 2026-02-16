@@ -1,13 +1,24 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   Lexer.cpp                                          :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/02/16 12:22:40 by tsilveir          #+#    #+#             */
+/*   Updated: 2026/02/16 13:06:43 by tsilveir         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
 
-#include <string>
-#include <vector>
-#include <sstream>
 #include "../includes/Lexer.hpp"
 #include "../includes/Server.hpp"
+#include <string>
+#include <vector>
 
-Token token(std::string content, TokenType type)
+Token	token(std::string content, TokenType type)
 {
-	Token token;
+	Token	token;
+
 	token.content = content;
 	token.type = type;
 	return (token);
@@ -18,22 +29,22 @@ bool	is_delim(std::string &config_str, int loc, std::vector<char> &delim)
 	for (size_t i = 0; i < delim.size(); i++)
 	{
 		// std::cout << "*This is a delim* [" << delim[i] <<"]\n";
-
 		if (config_str[loc] == delim[i])
 		{
 			// std::cout << "*This is a delim* [" << config_str[loc] <<"]\n";
-			return true;
-
+			return (true);
 		}
 	}
-	return false;
+	return (false);
 }
 
-bool	is_end_of_token(std::string &config_str, int curr_i, std::vector<char>& delim)
+bool	is_end_of_token(std::string &config_str, int curr_i,
+		std::vector<char> &delim)
 {
-	if (!config_str[curr_i] || is_delim(config_str, curr_i, delim) || isspace(config_str[curr_i]))
-		return true;
-	return false;
+	if (!config_str[curr_i] || is_delim(config_str, curr_i, delim) ||
+		isspace(config_str[curr_i]))
+		return (true);
+	return (false);
 }
 
 Lexer::Lexer(std::string &config_str)
@@ -42,11 +53,9 @@ Lexer::Lexer(std::string &config_str)
 	std::vector<char> delim(delim_array, delim_array + sizeof(delim_array) / sizeof(char));
 	for (size_t i = 0; i < delim.size(); i++)
 	{
-		std::cout << "This is delim ->" << delim[i] <<"\n";
+		std::cout << "This is delim ->" << delim[i] << "\n";
 	}
-	
 	std::string temp_str;
-
 	for (int i = 0; config_str[i]; i++)
 	{
 		if (config_str[i] == '#')
@@ -55,7 +64,7 @@ Lexer::Lexer(std::string &config_str)
 			while (config_str[i] && config_str[i] != '\n')
 			{
 				i++;
-			}			
+			}
 			// if(config_str[i] && config_str[i] == '\n')
 			// 	_token_list.push_back(token("\n", Whitespace));
 		}
@@ -66,9 +75,10 @@ Lexer::Lexer(std::string &config_str)
 		else if (config_str[i] == ';')
 			_token_list.push_back(token(";", SemiCol));
 		else if (std::isspace(config_str[i]))
-			continue;
-			// _token_list.push_back(token(" ", Whitespace));
-		else if (config_str[i] == '\"'){
+			continue ;
+		// _token_list.push_back(token(" ", Whitespace));
+		else if (config_str[i] == '\"')
+		{
 			std::string temp_str;
 			temp_str += "\"";
 			i++;
@@ -91,26 +101,32 @@ Lexer::Lexer(std::string &config_str)
 				i++;
 			}
 			i--;
-			if (std::find(Server::directives.begin(), Server::directives.end(), temp_str) != Server::directives.end())
+			if (std::find(Server::directives.begin(), Server::directives.end(),
+					temp_str) != Server::directives.end())
 				_token_list.push_back(token(temp_str, DirectTok));
-			else if (std::find(Server::context.begin(), Server::context.end(), temp_str) != Server::context.end())
+			else if (std::find(Server::context.begin(), Server::context.end(),
+						temp_str) != Server::context.end())
 				_token_list.push_back(token(temp_str, ContextTok));
 			else
 				_token_list.push_back(token(temp_str, ParamTok));
 		}
-	}	
+	}
 }
 
-std::ostream& operator<<(std::ostream& os, const Lexer &obj)
+std::ostream &operator<<(std::ostream &os, const Lexer &obj)
 {
-	os <<"Beginning of the Lexer\n";
-	for (std::list<Token>::const_iterator it = obj._token_list.begin(); it != obj._token_list.end(); it++)
+	os << "Beginning of the Lexer\n";
+	for (std::list<Token>::const_iterator it = obj._token_list.begin();
+			it != obj._token_list.end();
+			it++)
 	{
 		// Debug
-		os << "Content: " <<it->content << "; type: " << it->type << std::endl; 
-		// os << it->content ; 
+		os << "Content: " << it->content << "; type: " << it->type << std::endl;
+		// os << it->content ;
 	}
-	return(os);
+	return (os);
 }
 
-Lexer::~Lexer() {}
+Lexer::~Lexer()
+{
+}

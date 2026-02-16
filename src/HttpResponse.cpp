@@ -1,7 +1,20 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   HttpResponse.cpp                                   :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/02/16 12:22:12 by tsilveir          #+#    #+#             */
+/*   Updated: 2026/02/16 13:04:42 by tsilveir         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 #include "../includes/HttpResponse.hpp"
 #include "../includes/utils.hpp"
 
-HttpResponse::HttpResponse(): _version("HTTP/1.1"), _bytes_sent(0)
+HttpResponse::HttpResponse()
+	: _version("HTTP/1.1"), _bytes_sent(0)
 {
 }
 
@@ -9,39 +22,36 @@ HttpResponse::~HttpResponse()
 {
 }
 
-void	HttpResponse::serialize_response()
+void HttpResponse::serialize_response()
 {
 	add_header("Content-length", ft_int_to_string(_body.size()));
-
 	_response_buffer += this->_version;
 	_response_buffer += " ";
 	_response_buffer += ft_int_to_string(this->_status_code);
 	_response_buffer += " ";
-
-	std::map<int, std::string>::iterator it = http_status_codes.find(this->_status_code);
+	std::map<int, std::string>::iterator it =
+		http_status_codes.find(this->_status_code);
 	if (it != http_status_codes.end())
 		_response_buffer += it->second;
 	else
 		_response_buffer += "Internal Server Error";
-
 	_response_buffer += "\r\n";
 	_response_buffer += serialize_headers();
 	_response_buffer += "\r\n";
 	_response_buffer += this->_body;
 }
 
-void	HttpResponse::build_response(int status_code)
+void HttpResponse::build_response(int status_code)
 {
 	set_status(status_code);
 	serialize_response();
 }
 
-std::string	HttpResponse::serialize_headers()
+std::string HttpResponse::serialize_headers()
 {
 	std::string headers_str;
 	std::map<std::string, std::string>::iterator it = _headers.begin();
 	std::map<std::string, std::string>::iterator it_end = _headers.end();
-
 	for (; it != it_end; it++)
 	{
 		headers_str += it->first;
@@ -49,39 +59,38 @@ std::string	HttpResponse::serialize_headers()
 		headers_str += it->second;
 		headers_str += "\r\n";
 	}
-	return(headers_str);
+	return (headers_str);
 }
 
-void	HttpResponse::set_status(int code)
+void HttpResponse::set_status(int code)
 {
 	_status_code = code;
 }
 
-void	HttpResponse::set_body(const std::string& body)
+void HttpResponse::set_body(const std::string &body)
 {
 	this->_body = body;
 }
 
-std::string	HttpResponse::get_body()
+std::string HttpResponse::get_body()
 {
 	return (this->_body);
 }
 
-
-void	HttpResponse::add_header(const std::string& key, const std::string& value)
+void HttpResponse::add_header(const std::string &key,
+								const std::string &value)
 {
 	_headers.insert(std::make_pair(key, value));
 }
 
-std::map<int, std::string> HttpResponse::initHttpStatusCodes() {
+std::map<int, std::string> HttpResponse::initHttpStatusCodes()
+{
 	std::map<int, std::string> m;
-
 	// Informational
 	m[100] = "Continue";
 	m[101] = "Switching Protocols";
 	m[102] = "Processing";
 	m[103] = "Early Hints";
-
 	// Success
 	m[200] = "OK";
 	m[201] = "Created";
@@ -93,7 +102,6 @@ std::map<int, std::string> HttpResponse::initHttpStatusCodes() {
 	m[207] = "Multi-Status";
 	m[208] = "Already Reported";
 	m[226] = "IM Used";
-
 	// Redirection
 	m[300] = "Multiple Choices";
 	m[301] = "Moved Permanently";
@@ -103,7 +111,6 @@ std::map<int, std::string> HttpResponse::initHttpStatusCodes() {
 	m[305] = "Use Proxy";
 	m[307] = "Temporary Redirect";
 	m[308] = "Permanent Redirect";
-
 	// Client Error
 	m[400] = "Bad Request";
 	m[401] = "Unauthorized";
@@ -134,7 +141,6 @@ std::map<int, std::string> HttpResponse::initHttpStatusCodes() {
 	m[429] = "Too Many Requests";
 	m[431] = "Request Header Fields Too Large";
 	m[451] = "Unavailable For Legal Reasons";
-
 	// Server Error
 	m[500] = "Internal Server Error";
 	m[501] = "Not Implemented";
@@ -147,14 +153,14 @@ std::map<int, std::string> HttpResponse::initHttpStatusCodes() {
 	m[508] = "Loop Detected";
 	m[510] = "Not Extended";
 	m[511] = "Network Authentication Required";
-
-	return m;
+	return (m);
 }
 
-std::map<int, std::string> HttpResponse::http_status_codes = HttpResponse::initHttpStatusCodes();
+std::map<int, std::string> HttpResponse::http_status_codes =
+	HttpResponse::initHttpStatusCodes();
 
-
-std::ostream& operator<<(std::ostream& os, const HttpResponse& resp) {
-    os << resp._response_buffer;
-    return os;
+std::ostream &operator<<(std::ostream &os, const HttpResponse &resp)
+{
+	os << resp._response_buffer;
+	return (os);
 }

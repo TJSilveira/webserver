@@ -6,7 +6,7 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/01/14 17:29:14 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/16 11:29:49 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/16 11:32:37 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,7 +19,8 @@ int	extract_and_validate_str_to_int(std::string str)
 
 	if (str[0] == '-')
 	{
-		throw ConfigError("Negative numbers are not allowed for listen directive", str);
+		throw ConfigError("Negative numbers are not allowed for listen directive",
+				str);
 	}
 	num = strtol(str.c_str(), &endptr, 10);
 	if (num == 0 && str[0] != '0')
@@ -27,26 +28,26 @@ int	extract_and_validate_str_to_int(std::string str)
 		throw ConfigError("Invalid int", str);
 	}
 	else if (num > static_cast<long int>(std::numeric_limits<int>::max())
-		|| errno == ERANGE)
+			|| errno == ERANGE)
 	{
 		throw ConfigError("Invalid int", str);
 	}
-	else if(*endptr != 0)
+	else if (*endptr != 0)
 	{
 		throw ConfigError("Invalid int", str);
 	}
-	return (static_cast<int> (num));
+	return (static_cast<int>(num));
 }
 
 int	extract_hexa_to_int(std::string str)
 {
-	int n;
+	int	n;
 
 	std::istringstream(str) >> std::hex >> n;
 	return (n);
 }
 
-void open_and_validate_file(char *filename, std::ifstream &file_stream)
+void	open_and_validate_file(char *filename, std::ifstream &file_stream)
 {
 	file_stream.open(filename, std::ios::in | std::ios::binary);
 	if (file_stream.fail())
@@ -56,7 +57,7 @@ void open_and_validate_file(char *filename, std::ifstream &file_stream)
 	}
 }
 
-bool open_file(char *filename, std::ifstream &file_stream)
+bool	open_file(char *filename, std::ifstream &file_stream)
 {
 	file_stream.open(filename, std::ios::in | std::ios::binary);
 	if (file_stream.fail())
@@ -70,22 +71,18 @@ std::string file_to_string(std::ifstream &file)
 						std::istreambuf_iterator<char>()));
 }
 
-bool ft_ends_with(const std::string &str, const std::string &to_search)
+bool	ft_ends_with(const std::string &str, const std::string &to_search)
 {
-	size_t len_str = str.size();
-	size_t len_to_search = to_search.size();
+	size_t	len_str;
+	size_t	len_to_search;
 
+	len_str = str.size();
+	len_to_search = to_search.size();
 	if (len_str < len_to_search)
 		return (false);
-
 	std::cout << "After here\n";
 	if (str.substr(len_str - len_to_search, len_to_search) == to_search)
 		return (true);
 	else
 		return (false);
-}
-
-void signal_hanlder(int signum)
-{
-	
 }

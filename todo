@@ -1,5 +1,4 @@
 Current:
-Add signalhandling to gracefully shutdown  & overall error handling -> Tiago
 
 Next steps:
 Add limits to the number of sockets that are checked by epoll
@@ -31,3 +30,4 @@ Add alias redirections -> Tiago
 Enforce maximum data exchange -> Tiago
 Add CGI capabilities (pipe, execve,...) -> Andrei
 Change errno usage in the epoll recv and send -> Tiago
+Add signalhandling to gracefully shutdown  & overall error handling -> Tiago
