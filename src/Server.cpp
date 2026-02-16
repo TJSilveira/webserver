@@ -6,7 +6,7 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 12:23:47 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/16 12:23:49 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/16 15:35:58 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -122,11 +122,10 @@ void Server::init()
 		if (bound_ports.find(port) == bound_ports.end())
 		{
 			fd = create_listening_socket(port, "0.0.0.0");
-			listening_sockfds.insert(std::make_pair(fd,
-						&virtual_servers.at(i)));
+			listening_sockfds.insert(std::make_pair(fd,	&virtual_servers.at(i)));
 			bound_ports.insert(port);
-			std::cout << "Successfully bound port: " << port << " with fd: " << fd
-						<< std::endl;
+			std::cout << "Successfully bound port: " << port
+						<< " with fd: " << fd << std::endl;
 		}
 		else
 		{
@@ -162,7 +161,7 @@ void Server::run_server()
 	}
 	while (!g_stop)
 	{
-		nfds = epoll_wait(epollfd, events, MAX_EVENTS, 500);
+		nfds = epoll_wait(epollfd, events, MAX_EVENTS, 2000);
 		if (nfds == -1)
 		{
 			if (g_stop == 1)
@@ -194,8 +193,7 @@ void Server::run_server()
 			}
 			else
 			{
-				std::cout << "Connection socket that needs attention: "
-							<< events[i].data.fd << std::endl;
+				// std::cout << "Connection socket that needs attention: " << events[i].data.fd << std::endl;
 				conn_sock = events[i].data.fd;
 				if (events[i].events & (EPOLLERR | EPOLLHUP | EPOLLRDHUP))
 				{
@@ -210,13 +208,14 @@ void Server::run_server()
 		}
 		close_inactive_connections(epollfd);
 	}
+	clean_all_connections(epollfd);
 }
 
 void Server::read_handler(int epollfd, int socketfd)
 {
 	int	status;
 
-	std::cout << "Inside the read\n";
+	// std::cout << "Inside the read\n";
 	if (active_connections.find(socketfd) == active_connections.end())
 		return ;
 	Connection &curr_connection = active_connections.at(socketfd);
@@ -327,9 +326,11 @@ void Server::clean_all_connections(int epollfd)
 	}
 	// clean connection
 	std::map<int, Connection>::iterator it_conn = active_connections.begin();
-	for (; it_conn != active_connections.end(); it_conn++)
+	while(it_conn != active_connections.end())
 	{
-		clean_connection(epollfd, it_conn->first);
+		int fd = it_conn->first;
+		it_conn++;
+		clean_connection(epollfd, fd);
 	}
 	// clean listening sockets
 	std::map<int, const VirtualServer *>::iterator it_list =

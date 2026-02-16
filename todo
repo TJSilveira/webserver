@@ -1,11 +1,12 @@
 Current:
+Add limits to the number of sockets that are checked by epoll
 
 Next steps:
-Add limits to the number of sockets that are checked by epoll
 Add upload capabilities
 Add Delete method implementation
 Understand how and when to Chunk http responses
 Improve logging
+Add try catch blocks for parsing and lexer in main
 Stress test the server
 
 Nice to haves:

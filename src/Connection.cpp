@@ -6,7 +6,7 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 12:21:35 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/16 13:04:14 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/16 15:36:13 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -81,7 +81,7 @@ int Connection::read_full_recv()
 	std::string buffer;
 	buffer.resize(BUFFER_SIZE);
 	bytes_received = recv(socket_fd, &buffer[0], BUFFER_SIZE, 0);
-	std::cout << "This is the buffer: " << buffer << std::endl;
+	// std::cout << "This is the buffer: " << buffer << std::endl;
 	if (bytes_received > 0)
 	{
 		buffer.resize(bytes_received);
