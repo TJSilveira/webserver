@@ -6,7 +6,7 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 12:22:21 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/17 11:32:10 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/18 00:31:39 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,7 +25,7 @@ HttpTransaction::~HttpTransaction()
 }
 
 void HttpTransaction::parse(const std::string &raw)
-{
+{	
 	for (size_t i = 0; i < raw.size(); i++)
 	{
 		switch (this->state)
@@ -35,7 +35,7 @@ void HttpTransaction::parse(const std::string &raw)
 			{
 				this->state = PARSING_REQ_URI;
 				if (this->request.add_method(temp) == -1)
-					this->state = PARSING_ERROR;
+					assign_state(PARSING_ERROR, raw.at(i));
 				temp.clear();
 			}
 			else
@@ -67,10 +67,10 @@ void HttpTransaction::parse(const std::string &raw)
 				this->state = PARSING_HEADER_KEY;
 				this->location = find_location();
 				if (this->location == NULL)
-					this->state = PARSING_ERROR;
+					assign_state(PARSING_ERROR, raw.at(i));
 			}
 			else
-				this->state = PARSING_ERROR;
+				assign_state(PARSING_ERROR, raw.at(i));
 			break ;
 		case PARSING_HEADER_KEY:
 			if (raw.at(i) == ':')
@@ -78,7 +78,7 @@ void HttpTransaction::parse(const std::string &raw)
 				this->state = PARSING_HEADER_OWS;
 			}
 			else if (isspace(raw.at(i)))
-				this->state = PARSING_ERROR;
+				assign_state(PARSING_ERROR, raw.at(i));
 			else
 				temp_key += raw.at(i);
 			break ;
@@ -86,7 +86,7 @@ void HttpTransaction::parse(const std::string &raw)
 			if (raw.at(i) == ' ')
 				continue ;
 			else if (raw.at(i) == '\r' || raw.at(i) == '\n')
-				this->state = PARSING_ERROR;
+				assign_state(PARSING_ERROR, raw.at(i));
 			else
 			{
 				this->state = PARSING_HEADER_VALUE;
@@ -109,13 +109,13 @@ void HttpTransaction::parse(const std::string &raw)
 			if (raw.at(i) == '\n')
 				this->state = PARSING_HEADER_DONE;
 			else
-				this->state = PARSING_ERROR;
+				assign_state(PARSING_ERROR, raw.at(i));
 			break ;
 		case PARSING_HEADER_DONE:
 			if (raw.at(i) == '\r')
 				this->state = PARSING_HEADER_FINAL_CR;
 			else if (isspace(raw.at(i)))
-				this->state = PARSING_ERROR;
+				assign_state(PARSING_ERROR, raw.at(i));
 			else
 			{
 				this->state = PARSING_HEADER_KEY;
@@ -143,10 +143,13 @@ void HttpTransaction::parse(const std::string &raw)
 					std::cout << "In the chunked\n";
 				}
 				else
+				{
+					std::cout << "Exited as processing\n";
 					this->state = PROCESSING;
+				}
 			}
 			else
-				this->state = PARSING_ERROR;
+				assign_state(PARSING_ERROR, raw.at(i));
 			break ;
 		case PARSING_BODY:
 			if (this->request.headers.count("Content-Length") == 0)
@@ -155,10 +158,9 @@ void HttpTransaction::parse(const std::string &raw)
 				break ;
 			}
 			else if (this->request.body.size() >=
-						static_cast<size_t>(atoi(
-							this->request.headers.at("Content-Length").c_str())))
+						static_cast<size_t>(atoi(this->request.headers.at("Content-Length").c_str())))
 			{
-				this->state = PARSING_ERROR;
+				assign_state(PARSING_ERROR, raw.at(i));
 				break ;
 			}
 			this->request.body += raw.at(i);
@@ -171,7 +173,7 @@ void HttpTransaction::parse(const std::string &raw)
 			if (raw.at(i) == '\r')
 			{
 				if (parse_chuncked_size_str.size() == 0)
-					this->state = PARSING_ERROR;
+					assign_state(PARSING_ERROR, raw.at(i));
 				else
 					this->state = PARSING_CHUNCKED_SIZE_CR;
 				break ;
@@ -185,16 +187,37 @@ void HttpTransaction::parse(const std::string &raw)
 		case PARSING_CHUNCKED_SIZE_CR:
 			parse_chuncked_bytes_to_read =
 				extract_hexa_to_int(parse_chuncked_size_str);
+			std::cout << "This is the parse_chuncked_bytes_to_read: " << parse_chuncked_bytes_to_read << std::endl;
+			std::cout << "This is the location->client_max_body_size: " << location->client_max_body_size << std::endl;
+			parse_chuncked_size_str.clear();
+			if (static_cast<size_t>(parse_chuncked_bytes_to_read) > location->client_max_body_size)
+			{
+				std::cout << "In the ERROR_EXCEEDS_LIMIT setting if\n";
+				state = ERROR_EXCEEDS_LIMIT;
+				return;
+			}
+			
 			if (parse_chuncked_bytes_to_read == 0)
 				parse_is_last_chunck = true;
 			if (raw.at(i) == '\n' && parse_is_last_chunck == false)
 				this->state = PARSING_CHUNCKED_BODY;
 			else if (raw.at(i) == '\n' && parse_is_last_chunck == true)
+			{
+				std::cout << "Became done by PARSING_CHUNCKED_SIZE_CR\n";
 				this->state = PARSING_CHUNCKED_DONE;
+			}
 			else
-				this->state = PARSING_ERROR;
+			{
+				std::cout << "In PARSING_CHUNCKED_SIZE_CR PARSING_ERROR\n";
+				assign_state(PARSING_ERROR, raw.at(i));
+			}
 			break ;
 		case PARSING_CHUNCKED_BODY:
+			if (location != NULL && request.body.size() >= location->client_max_body_size)
+			{
+				state = ERROR_EXCEEDS_LIMIT;
+				return;
+			}
 			if (parse_chuncked_bytes_to_read > 0)
 			{
 				request.body += raw.at(i);
@@ -203,19 +226,37 @@ void HttpTransaction::parse(const std::string &raw)
 			else if (parse_chuncked_bytes_to_read == 0 && raw.at(i) == '\r')
 				this->state = PARSING_CHUNCKED_CR;
 			else
-				this->state = PARSING_ERROR;
+			{
+				std::cout << "In PARSING_CHUNCKED_BODY PARSING_ERROR\n";
+				assign_state(PARSING_ERROR, raw.at(i));
+			}
 			break ;
 		case PARSING_CHUNCKED_CR:
 			if (raw.at(i) == '\n')
-				this->state = PARSING_CHUNCKED_DONE;
+			{
+				std::cout << "Became done by PARSING_CHUNCKED_CR\n";
+				this->state = PARSING_CHUNCKED_SIZE;
+			}
 			else
-				this->state = PARSING_ERROR;
+			{
+				std::cout << "In PARSING_CHUNCKED_CR PARSING_ERROR\n";
+				assign_state(PARSING_ERROR, raw.at(i));
+			}
 			break ;
 		case PARSING_CHUNCKED_DONE:
+			if (request.body.size() > location->client_max_body_size)
+			{
+				this->state = ERROR_EXCEEDS_LIMIT;
+				break ;
+			}
 			if (raw.at(i) == '\r')
 				this->state = PARSING_CHUNCKED_FINAL_CR;
 			else
-				this->state = PARSING_ERROR;
+			{
+				std::cout << "RAW string: " << raw << std::endl;
+				std::cout << "In PARSING_CHUNCKED_DONE PARSING_ERROR\n";
+				assign_state(PARSING_ERROR, raw.at(i));
+			}
 			break ;
 		case PARSING_CHUNCKED_FINAL_CR:
 			if (raw.at(i) == '\n')
@@ -233,7 +274,7 @@ void HttpTransaction::parse(const std::string &raw)
 					this->state = PARSING_CHUNCKED_SIZE;
 			}
 			else
-				this->state = PARSING_ERROR;
+				assign_state(PARSING_ERROR, raw.at(i));
 			break ;
 		default:
 			break ;
@@ -243,11 +284,13 @@ void HttpTransaction::parse(const std::string &raw)
 
 const Location *HttpTransaction::find_location()
 {
+	std::string		uri_with_append;
 	const Location	*matched_location;
 	size_t			size_best_match;
 
 	matched_location = NULL;
 	size_best_match = 0;
+	uri_with_append = this->request.uri + "/";
 	for (size_t i = 0; i < vir_server->locations.size(); i++)
 	{
 		const std::string &loc_path = vir_server->locations.at(i).path;
@@ -257,6 +300,15 @@ const Location *HttpTransaction::find_location()
 			{
 				size_best_match = loc_path.length();
 				matched_location = &vir_server->locations.at(i);
+			}
+		}
+		if (uri_with_append.find(loc_path) == 0)
+		{
+			if (loc_path.length() > size_best_match)
+			{
+				size_best_match = loc_path.length();
+				matched_location = &vir_server->locations.at(i);
+				request.uri = uri_with_append;
 			}
 		}
 	}
@@ -281,6 +333,7 @@ bool	is_allowed_method(const Location *matched_location,
 void HttpTransaction::process_request(int epollfd, int curr_socket)
 {
 	std::cout << "Inside process_request\n";
+	std::cout << "This is the state: " << state << std::endl;
 	if (state == PROCESSING)
 	{
 		// 1. Find Location
@@ -317,31 +370,45 @@ void HttpTransaction::process_request(int epollfd, int curr_socket)
 							request.uri.size() - request.uri.find_last_of('/') - 1);
 			if (len_file_name != 0)
 				file_name = std::string(request.uri,request.uri.find_last_of('/') + 1, len_file_name);
-			final_path = "." + location->alias + file_name;
+			final_path = location->alias + file_name;
 			prepare_response(epollfd, curr_socket, final_path);
 		}
 		else
 		{
 			std::string final_path;
-			
-			final_path = "." + location->root + request.uri;
-			if (!location->cgi_ext.empty() && ft_ends_with(final_path, location->cgi_ext))
+			std::string target_resource = request.uri;
+
+			target_resource = target_resource.substr(location->path.length(), target_resource.length() - location->path.length());
+			std::cout << "Location path: "<< location->path << std::endl;
+			std::cout << "Target resource: "<< target_resource << std::endl;
+			final_path = location->root + "/" + target_resource;
+			std::cout << "This is the final_path: " << final_path << std::endl;
+			if (!location->cgi_ext.empty() && ft_ends_with(final_path, location->cgi_ext) && request.method == "POST")
 				final_path = build_cgi_path();
 			prepare_response(epollfd, curr_socket, final_path);
 		}
 	}
 	else if (state == PARSING_ERROR)
 	{
-		std::cout << "Inside Parsing Error\n";
 		build_error_response(400);
+		change_socket_epollout(epollfd, curr_socket);
+	}
+	else if (state == ERROR_METHOD_NOT_ALLOWED)
+	{
+		build_error_response(405);
 		change_socket_epollout(epollfd, curr_socket);
 	}
 	else if (state == ERROR_EXCEEDS_LIMIT)
 	{
-		std::cout << "Inside Parsing Error\n";
 		build_error_response(413);
 		change_socket_epollout(epollfd, curr_socket);
 	}
+	else
+	{
+		build_error_response(500);
+		change_socket_epollout(epollfd, curr_socket);		
+	}
+
 }
 
 std::string HttpTransaction::build_cgi_path()
@@ -368,9 +435,13 @@ void HttpTransaction::prepare_response(int epollfd, int curr_socket, std::string
 	if (stat(final_path.c_str(), &s) == 0)
 	{
 		if(request.method == "GET")
-			prepare_response_get(curr_socket, final_path, s);
+			prepare_response_get(final_path, s);
 		else if (request.method == "POST")
 			prepare_response_post(curr_socket, final_path, s);
+		else if (request.method == "DELETE") {}
+			// To add
+		else
+			build_error_response(405);
 	}
 	else
 		build_error_response(404);
@@ -378,21 +449,9 @@ void HttpTransaction::prepare_response(int epollfd, int curr_socket, std::string
 		change_socket_epollout(epollfd, curr_socket);
 }
 
-void HttpTransaction::prepare_response_get(int curr_socket, std::string final_path,struct stat &s)
+void HttpTransaction::prepare_response_get(std::string final_path,struct stat &s)
 {
-	CgiHandler cgi;
-
-	if (location->cgi_ext.size() != 0 &&
-		ft_ends_with(final_path, location->cgi_ext) == true)
-	{
-		cgi_info = cgi.execute(location->cgi_path, final_path,
-				cgi_info.input_doc_path, *this, curr_socket);
-		state = WAITING_CGI;
-		if (cgi_info.is_started == false)
-			build_error_response(500);
-	}
-	else
-		build_response_found_resource(location, s, final_path);
+	build_response_found_resource(location, s, final_path);
 }
 
 void HttpTransaction::prepare_response_post(int curr_socket, std::string final_path, struct stat &s)
@@ -447,10 +506,15 @@ void HttpTransaction::build_response_found_resource(
 	// If the request uri matches a directory
 	if (S_ISDIR(s.st_mode))
 	{
+		std::cout << "Inside the directory section\n";
+		if (final_path.at(final_path.length() - 1) != '/')
+			final_path += "/";
+		
 		// check if location has indices to return
 		for (size_t i = 0; i < matched_location->index.size(); i++)
 		{
 			std::string index_path = final_path + matched_location->index.at(i);
+			std::cout << "This is index_path: " << index_path << std::endl;
 			if (open_file(&index_path.at(0), html_file) == true)
 			{
 				response.set_body(file_to_string(html_file));
@@ -471,7 +535,7 @@ void HttpTransaction::build_response_found_resource(
 		}
 		// Without any available indices or autoindex, we need to return an error
 		else
-			build_error_response(403);
+			build_error_response(404);
 	}
 	// If it is not a directory, it is a file
 	else
@@ -552,4 +616,12 @@ std::string HttpTransaction::build_autoindex_string(std::string &dir_path)
 void HttpTransaction::mark_as_complete()
 {
 	this->state = COMPLETE;
+}
+
+void HttpTransaction::assign_state(State s, char c)
+{
+    std::cerr << "PARSING_ERROR in state " << this->state 
+              << " at char '" << c << "' (0x" 
+              << std::hex << (int)(unsigned char)c << ")" << std::endl;
+    this->state = s;
 }

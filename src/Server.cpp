@@ -6,7 +6,7 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 12:23:47 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/17 11:15:31 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/17 16:01:49 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -213,7 +213,7 @@ void Server::read_handler(int epollfd, int socketfd)
 {
 	int	status;
 
-	std::cout << "Inside the read\n";
+	// std::cout << "Inside the read\n";
 	if (active_connections.find(socketfd) == active_connections.end())
 		return ;
 	Connection &curr_connection = active_connections.at(socketfd);
@@ -223,43 +223,38 @@ void Server::read_handler(int epollfd, int socketfd)
 			new HttpTransaction(curr_connection.server_config);
 	curr_connection.update_last_activity();
 	status = curr_connection.read_full_recv();
-	std::cout << "After read_full_recv\n";
-	std::cout << "The state of the transaction is " << curr_connection.current_transaction->state << std::endl;
+	// std::cout << "After read_full_recv\n";
+	// std::cout << "The state of the transaction is " << curr_connection.current_transaction->state << std::endl;
 	if (status == READ_ERROR)
 	{
 		std::cout << "CLEANING IN THE 'READ_ERROR'\n";
 		clean_connection(epollfd, socketfd);
 		return ;
 	}
-	// if (curr_connection.current_transaction->state ==
-	// 	HttpTransaction::PROCESSING)
-	// {
-		curr_connection.insert_keep_alive_header();
-		curr_connection.current_transaction->process_request(epollfd, socketfd);
-		std::cout << "State of the transaction after the process_request: " <<curr_connection.current_transaction->state <<std::endl;
-		if (curr_connection.current_transaction->state ==
-			HttpTransaction::WAITING_CGI) // The problem is that the program is not entering this part of the code
-		{
-			std::cout << "IN THIS IF STATEMENT HttpTransaction::WAITING_CGI \n";
-			cgi_output_map.insert(
-				std::make_pair(curr_connection.current_transaction->cgi_info.pipe_fd,
-								curr_connection.socket_fd));
-			add_cgifd_epoll(epollfd, curr_connection.current_transaction->cgi_info.pipe_fd);
-		}
-		std::cout << "==== THIS IS THE REQUEST ====\n";
-		std::cout << curr_connection.current_transaction->request;
-		std::cout << "==== END OF THE REQUEST ====\n";
-		std::cout << "==== THIS IS THE response ====\n";
-		std::cout << curr_connection.current_transaction->response;
-		std::cout << "==== END OF THE response ====\n";
-	// }
-	// else if (curr_connection.current_transaction->state ==
-	// 	HttpTransaction::ERROR_EXCEEDS_LIMIT)
-	// {
-	// 	curr_connection.insert_keep_alive_header();
-	// 	curr_connection.current_transaction->build_error_response(413);
-	// 	change_socket_epollout(epollfd, socketfd);
-	// }
+	if (status == SOCKET_FINISHED_READ)
+	{
+		// I think this is wrong. We need to find a way to send the information before closing.
+		std::cout << "Client closed connection (EOF)\n";
+		clean_connection(epollfd, socketfd);
+		return;
+	}
+
+	if (curr_connection.current_transaction->state < HttpTransaction::PARSING_ERROR)
+		return;
+	
+	curr_connection.insert_keep_alive_header();
+	curr_connection.current_transaction->process_request(epollfd, socketfd);
+	std::cout << "State of the transaction after the process_request: " <<curr_connection.current_transaction->state <<std::endl;
+	if (curr_connection.current_transaction->state ==
+		HttpTransaction::WAITING_CGI) // The problem is that the program is not entering this part of the code
+	{
+		std::cout << "IN THIS IF STATEMENT HttpTransaction::WAITING_CGI \n";
+		cgi_output_map.insert(
+			std::make_pair(curr_connection.current_transaction->cgi_info.pipe_fd,
+							curr_connection.socket_fd));
+		add_cgifd_epoll(epollfd, curr_connection.current_transaction->cgi_info.pipe_fd);
+	}
+	print_req_resp(curr_connection);
 }
 
 void Server::cgi_read_handler(int epollfd, int cgifd)
@@ -410,4 +405,15 @@ std::ostream &operator<<(std::ostream &os, const Server &s)
 	}
 	os << "||||||||||||||||||||||||||||||||||||||||\n";
 	return (os);
+}
+
+
+void Server::print_req_resp(const Connection &curr_connection)
+{
+	std::cout << "==== THIS IS THE REQUEST ====\n";
+	std::cout << curr_connection.current_transaction->request;
+	std::cout << "==== END OF THE REQUEST ====\n";
+	std::cout << "==== THIS IS THE response ====\n";
+	std::cout << curr_connection.current_transaction->response;
+	std::cout << "==== END OF THE response ====\n";
 }

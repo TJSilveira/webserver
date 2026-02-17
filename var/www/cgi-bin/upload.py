@@ -100,7 +100,7 @@ def main():
             f"</body></html>\n"
         )
         
-        print(f"{server_protocol} 200 OK")
+        print(f"{server_protocol} 201 Created")
         print("Content-Type: text/html")
         print(f"Content-Length: {len(response_body)}")
         print()

@@ -6,7 +6,7 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/01/26 22:41:05 by tiago             #+#    #+#             */
-/*   Updated: 2026/02/16 13:02:59 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/17 13:37:24 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -44,6 +44,8 @@ public:
 	void read_handler(int epollfd, int socketfd);
 	void send_handler(int epollfd, int socketfd);
 	void cgi_read_handler(int epollfd, int cgifd);
+
+	void	print_req_resp(const Connection &curr_connection);
 
 	static std::vector<std::string> directives;
 	static std::vector<std::string> context;

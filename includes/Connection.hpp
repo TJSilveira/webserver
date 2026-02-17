@@ -6,7 +6,7 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 12:18:02 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/16 13:01:54 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/17 23:27:56 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,7 +20,7 @@
 # include <sys/time.h>
 # include <unistd.h>
 
-# define BUFFER_SIZE 8192
+# define BUFFER_SIZE 40000
 # define SOCKET_FINISHED_READ 1
 # define BUFFER_READ 0
 # define READ_ERROR -1
