@@ -97,7 +97,7 @@ void	add_cgifd_epoll(int epollfd, int cgifd)
 {
 	struct epoll_event	ev;
 
-	ev.events = EPOLLIN | EPOLLHUP;
+	ev.events = EPOLLIN;
 	ev.data.fd = cgifd;
 	if (epoll_ctl(epollfd, EPOLL_CTL_ADD, cgifd, &ev) == -1)
 	{

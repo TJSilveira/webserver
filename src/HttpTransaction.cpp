@@ -6,7 +6,7 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 12:22:21 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/16 18:48:00 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/17 11:32:10 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -325,7 +325,6 @@ void HttpTransaction::process_request(int epollfd, int curr_socket)
 			std::string final_path;
 			
 			final_path = "." + location->root + request.uri;
-			std::cout << "This is cgi_ext: " << location->cgi_ext << std::endl;
 			if (!location->cgi_ext.empty() && ft_ends_with(final_path, location->cgi_ext))
 				final_path = build_cgi_path();
 			prepare_response(epollfd, curr_socket, final_path);
@@ -369,17 +368,17 @@ void HttpTransaction::prepare_response(int epollfd, int curr_socket, std::string
 	if (stat(final_path.c_str(), &s) == 0)
 	{
 		if(request.method == "GET")
-			prepare_response_get(epollfd, curr_socket, final_path, s);
+			prepare_response_get(curr_socket, final_path, s);
 		else if (request.method == "POST")
-			prepare_response_post(epollfd, curr_socket, final_path, s);
+			prepare_response_post(curr_socket, final_path, s);
 	}
 	else
 		build_error_response(404);
-	change_socket_epollout(epollfd, curr_socket);
-	state = COMPLETE;
+	if (state != WAITING_CGI)
+		change_socket_epollout(epollfd, curr_socket);
 }
 
-void HttpTransaction::prepare_response_get(int epollfd, int curr_socket, std::string final_path,struct stat &s)
+void HttpTransaction::prepare_response_get(int curr_socket, std::string final_path,struct stat &s)
 {
 	CgiHandler cgi;
 
@@ -388,22 +387,15 @@ void HttpTransaction::prepare_response_get(int epollfd, int curr_socket, std::st
 	{
 		cgi_info = cgi.execute(location->cgi_path, final_path,
 				cgi_info.input_doc_path, *this, curr_socket);
-		std::cout << "Before if statement\n";
-		if (cgi_info.is_started == true)
-		{
-			add_cgifd_epoll(epollfd, cgi_info.pipe_fd);
-			std::cout << "Putting status to waitng cgi\n";
-			state = WAITING_CGI;
-			return ;
-		}
-		else
+		state = WAITING_CGI;
+		if (cgi_info.is_started == false)
 			build_error_response(500);
 	}
 	else
 		build_response_found_resource(location, s, final_path);
 }
 
-void HttpTransaction::prepare_response_post(int epollfd, int curr_socket, std::string final_path, struct stat &s)
+void HttpTransaction::prepare_response_post(int curr_socket, std::string final_path, struct stat &s)
 {
 	CgiHandler cgi;
 
@@ -412,7 +404,6 @@ void HttpTransaction::prepare_response_post(int epollfd, int curr_socket, std::s
 	{
 		// create temp file
 		std::string temp_path = "./var/www/temp/webserv_upload_" + ft_int_to_string(getpid()) + "_" + ft_int_to_string(curr_socket)+ ".tmp";
-		std::cout << "THIS IS THE PATH THAT WE ARE GOING TO USE "<<  temp_path << std::endl;
 
 		int body_fd = open(temp_path.c_str(), O_CREAT | O_WRONLY | O_TRUNC, 0600);
 		if (body_fd == -1)
@@ -431,22 +422,15 @@ void HttpTransaction::prepare_response_post(int epollfd, int curr_socket, std::s
 			build_error_response(500);
 			return;
 		}
-		
+		close(body_fd);
 		cgi_info.input_doc_path = temp_path;
-
+		
 		// execute cgi
 		cgi_info = cgi.execute(location->cgi_path, final_path,
 				cgi_info.input_doc_path, *this, curr_socket);
-		std::cout << "Before if statement\n";
-		if (cgi_info.is_started == true)
+		state = WAITING_CGI;
+		if (cgi_info.is_started == false)
 		{
-			add_cgifd_epoll(epollfd, cgi_info.pipe_fd);
-			std::cout << "Putting status to waitng cgi\n";
-			state = WAITING_CGI;
-		}
-		else
-		{
-			std::cout << "Problem in else\n";
 			unlink(temp_path.c_str());
 			build_error_response(500);
 		}

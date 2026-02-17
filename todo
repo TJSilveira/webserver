@@ -1,10 +1,9 @@
 Current:
-Add upload capabilities -> Tiago
+Improve logging -> Tiago
+Add Delete method implementation -> Tiago
 
 Next steps:
-Add Delete method implementation
 Understand how and when to Chunk http responses
-Improve logging
 Add try catch blocks for parsing and lexer in main
 Stress test the server
 
@@ -34,3 +33,4 @@ Enforce maximum data exchange -> Tiago
 Add CGI capabilities (pipe, execve,...) -> Andrei
 Change errno usage in the epoll recv and send -> Tiago
 Add signalhandling to gracefully shutdown  & overall error handling -> Tiago
+Add upload capabilities -> Tiago

@@ -6,7 +6,7 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/12 15:26:06 by amoiseik          #+#    #+#             */
-/*   Updated: 2026/02/16 19:06:12 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/17 10:51:02 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,6 +17,9 @@
 #include <cstdlib>
 #include <sstream>
 #include <sys/wait.h>
+
+#define READ 0
+#define WRITE 1
 
 std::map<std::string, std::string>
 CgiHandler::_buildEnvMap(const HttpTransaction &tran, int curr_socket)
@@ -145,18 +148,18 @@ struct CgiInfo CgiHandler::execute(const std::string &interpreterPath,
 	if (pipe(pipe_out) == -1)
 		return (info);
 	// Set O_NONBLOCK for reading script's result
-	if (fcntl(pipe_out[0], F_SETFL, O_NONBLOCK) == -1)
+	if (fcntl(pipe_out[READ], F_SETFL, O_NONBLOCK) == -1)
 	{
-		close(pipe_out[0]);
-		close(pipe_out[1]);
+		close(pipe_out[READ]);
+		close(pipe_out[WRITE]);
 		_freeEnv(envp);
 		return (info);
 	}
 	info.pid = fork();
 	if (info.pid == -1)
 	{
-		close(pipe_out[0]);
-		close(pipe_out[1]);
+		close(pipe_out[READ]);
+		close(pipe_out[WRITE]);
 		_freeEnv(envp);
 		return (info);
 	}
@@ -190,9 +193,16 @@ struct CgiInfo CgiHandler::execute(const std::string &interpreterPath,
 			}
 		}
 		std::cout << "IN CHILD PROCESS: before dup2\n";
-		dup2(pipe_out[1], STDOUT_FILENO);
-		close(pipe_out[0]);
-		close(pipe_out[1]);
+		dup2(pipe_out[WRITE], STDOUT_FILENO);
+
+		int devnull_err = open("/dev/null", O_WRONLY);
+		if (devnull_err != -1)
+		{
+			dup2(devnull_err, STDERR_FILENO);
+			close(devnull_err);
+		}
+		close(pipe_out[READ]);
+		close(pipe_out[WRITE]);
 		// 3. Execute script
 		argv[0] = const_cast<char *>(interpreterPath.c_str());
 		argv[1] = const_cast<char *>(scriptPath.c_str());
@@ -201,10 +211,11 @@ struct CgiInfo CgiHandler::execute(const std::string &interpreterPath,
 		exit(1);
 	}
 	// PARENT PROCESS
-	close(pipe_out[1]);
+	close(pipe_out[WRITE]);
 	_freeEnv(envp);
-	info.pipe_fd = pipe_out[0]; // need to add this fd to the poll loop
+	info.pipe_fd = pipe_out[READ]; // need to add this fd to the poll loop
 	info.is_started = true;
+	info.input_doc_path = bodyFilePath;
 	std::cout << "IN PARENT PROCESS: just before return\n";
 	return (info);
 }

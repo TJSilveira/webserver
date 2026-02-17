@@ -6,7 +6,7 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 12:18:20 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/16 13:02:24 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/17 09:06:54 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,7 +27,7 @@ private:
 
 	static std::map<int, std::string> initHttpStatusCodes();
 
- public:
+public:
 	HttpResponse();
 	~HttpResponse();
 

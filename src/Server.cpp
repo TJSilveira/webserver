@@ -6,7 +6,7 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 12:23:47 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/16 16:58:30 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/17 11:15:31 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -191,7 +191,7 @@ void Server::run_server()
 			}
 			else
 			{
-				std::cout << "Connection socket that needs attention: " << events[i].data.fd << std::endl;
+				// std::cout << "Connection socket that needs attention: " << events[i].data.fd << std::endl;
 				conn_sock = events[i].data.fd;
 				if (events[i].events & (EPOLLERR | EPOLLHUP | EPOLLRDHUP))
 				{
@@ -213,7 +213,7 @@ void Server::read_handler(int epollfd, int socketfd)
 {
 	int	status;
 
-	// std::cout << "Inside the read\n";
+	std::cout << "Inside the read\n";
 	if (active_connections.find(socketfd) == active_connections.end())
 		return ;
 	Connection &curr_connection = active_connections.at(socketfd);
@@ -223,23 +223,28 @@ void Server::read_handler(int epollfd, int socketfd)
 			new HttpTransaction(curr_connection.server_config);
 	curr_connection.update_last_activity();
 	status = curr_connection.read_full_recv();
+	std::cout << "After read_full_recv\n";
+	std::cout << "The state of the transaction is " << curr_connection.current_transaction->state << std::endl;
 	if (status == READ_ERROR)
 	{
 		std::cout << "CLEANING IN THE 'READ_ERROR'\n";
 		clean_connection(epollfd, socketfd);
 		return ;
 	}
-	if (curr_connection.current_transaction->state ==
-		HttpTransaction::PROCESSING)
-	{
+	// if (curr_connection.current_transaction->state ==
+	// 	HttpTransaction::PROCESSING)
+	// {
 		curr_connection.insert_keep_alive_header();
 		curr_connection.current_transaction->process_request(epollfd, socketfd);
+		std::cout << "State of the transaction after the process_request: " <<curr_connection.current_transaction->state <<std::endl;
 		if (curr_connection.current_transaction->state ==
-			HttpTransaction::WAITING_CGI)
+			HttpTransaction::WAITING_CGI) // The problem is that the program is not entering this part of the code
 		{
+			std::cout << "IN THIS IF STATEMENT HttpTransaction::WAITING_CGI \n";
 			cgi_output_map.insert(
 				std::make_pair(curr_connection.current_transaction->cgi_info.pipe_fd,
 								curr_connection.socket_fd));
+			add_cgifd_epoll(epollfd, curr_connection.current_transaction->cgi_info.pipe_fd);
 		}
 		std::cout << "==== THIS IS THE REQUEST ====\n";
 		std::cout << curr_connection.current_transaction->request;
@@ -247,7 +252,14 @@ void Server::read_handler(int epollfd, int socketfd)
 		std::cout << "==== THIS IS THE response ====\n";
 		std::cout << curr_connection.current_transaction->response;
 		std::cout << "==== END OF THE response ====\n";
-	}
+	// }
+	// else if (curr_connection.current_transaction->state ==
+	// 	HttpTransaction::ERROR_EXCEEDS_LIMIT)
+	// {
+	// 	curr_connection.insert_keep_alive_header();
+	// 	curr_connection.current_transaction->build_error_response(413);
+	// 	change_socket_epollout(epollfd, socketfd);
+	// }
 }
 
 void Server::cgi_read_handler(int epollfd, int cgifd)
@@ -266,12 +278,11 @@ void Server::cgi_read_handler(int epollfd, int cgifd)
 		return ;
 	}
 	epoll_ctl(epollfd, EPOLL_CTL_DEL, cgifd, NULL);
+	std::cout << "input_doc_path: " << conn.current_transaction->cgi_info.input_doc_path.c_str() << std::endl;
 	close(cgifd);
 	cgi_output_map.erase(cgifd);
 	waitpid(cgifd, &status, WNOHANG);
-	conn.current_transaction->response.set_body(
-		conn.current_transaction->cgi_info.buffer);
-	conn.current_transaction->response.build_response(200);
+	conn.current_transaction->response._response_buffer = conn.current_transaction->cgi_info.buffer;
 	conn.current_transaction->state = HttpTransaction::SENDING;
 	change_socket_epollout(epollfd, client_fd);
 }
@@ -293,6 +304,8 @@ void Server::send_handler(int epollfd, int socketfd)
 			clean_connection(epollfd, socketfd);
 			return ;
 		}
+		if (!curr_connection.current_transaction->cgi_info.input_doc_path.empty())
+			unlink(curr_connection.current_transaction->cgi_info.input_doc_path.c_str());
 		delete curr_connection.current_transaction;
 		curr_connection.current_transaction = NULL;
 		change_socket_epollin(epollfd, socketfd);

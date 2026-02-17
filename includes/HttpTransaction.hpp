@@ -6,7 +6,7 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 12:18:58 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/16 18:36:50 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/17 09:52:26 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -39,8 +39,8 @@ public:
 	void parse(const std::string &raw);
 	void process_request(int epollfd, int curr_socket);
 	void prepare_response(int epollfd, int curr_socket, std::string final_path);
-	void prepare_response_get(int epollfd, int curr_socket, std::string final_path, struct stat &s);
-	void prepare_response_post(int epollfd, int curr_socket, std::string final_path, struct stat &s);
+	void prepare_response_get(int curr_socket, std::string final_path, struct stat &s);
+	void prepare_response_post(int curr_socket, std::string final_path, struct stat &s);
 	void build_error_response(int error_code);
 	std::string build_cgi_path();
 	const Location *find_location();
