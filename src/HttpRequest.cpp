@@ -6,7 +6,7 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 12:21:58 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/16 13:04:28 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/18 16:32:19 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -52,9 +52,9 @@ std::ostream &operator<<(std::ostream &os, const HttpRequest &req)
 		os << it->first << ": " << it->second << "\r\n";
 	}
 	os << "\r\n";
-	if (!req.body.empty())
-	{
-		os << req.body;
-	}
+	// if (!req.body.empty())
+	// {
+	// 	os << req.body;
+	// }
 	return (os);
 }

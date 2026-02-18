@@ -6,7 +6,7 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 12:22:21 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/18 00:31:39 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/18 17:57:55 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -187,12 +187,9 @@ void HttpTransaction::parse(const std::string &raw)
 		case PARSING_CHUNCKED_SIZE_CR:
 			parse_chuncked_bytes_to_read =
 				extract_hexa_to_int(parse_chuncked_size_str);
-			std::cout << "This is the parse_chuncked_bytes_to_read: " << parse_chuncked_bytes_to_read << std::endl;
-			std::cout << "This is the location->client_max_body_size: " << location->client_max_body_size << std::endl;
 			parse_chuncked_size_str.clear();
 			if (static_cast<size_t>(parse_chuncked_bytes_to_read) > location->client_max_body_size)
 			{
-				std::cout << "In the ERROR_EXCEEDS_LIMIT setting if\n";
 				state = ERROR_EXCEEDS_LIMIT;
 				return;
 			}
@@ -202,13 +199,9 @@ void HttpTransaction::parse(const std::string &raw)
 			if (raw.at(i) == '\n' && parse_is_last_chunck == false)
 				this->state = PARSING_CHUNCKED_BODY;
 			else if (raw.at(i) == '\n' && parse_is_last_chunck == true)
-			{
-				std::cout << "Became done by PARSING_CHUNCKED_SIZE_CR\n";
 				this->state = PARSING_CHUNCKED_DONE;
-			}
 			else
 			{
-				std::cout << "In PARSING_CHUNCKED_SIZE_CR PARSING_ERROR\n";
 				assign_state(PARSING_ERROR, raw.at(i));
 			}
 			break ;
@@ -226,22 +219,13 @@ void HttpTransaction::parse(const std::string &raw)
 			else if (parse_chuncked_bytes_to_read == 0 && raw.at(i) == '\r')
 				this->state = PARSING_CHUNCKED_CR;
 			else
-			{
-				std::cout << "In PARSING_CHUNCKED_BODY PARSING_ERROR\n";
 				assign_state(PARSING_ERROR, raw.at(i));
-			}
 			break ;
 		case PARSING_CHUNCKED_CR:
 			if (raw.at(i) == '\n')
-			{
-				std::cout << "Became done by PARSING_CHUNCKED_CR\n";
 				this->state = PARSING_CHUNCKED_SIZE;
-			}
 			else
-			{
-				std::cout << "In PARSING_CHUNCKED_CR PARSING_ERROR\n";
 				assign_state(PARSING_ERROR, raw.at(i));
-			}
 			break ;
 		case PARSING_CHUNCKED_DONE:
 			if (request.body.size() > location->client_max_body_size)
@@ -252,11 +236,7 @@ void HttpTransaction::parse(const std::string &raw)
 			if (raw.at(i) == '\r')
 				this->state = PARSING_CHUNCKED_FINAL_CR;
 			else
-			{
-				std::cout << "RAW string: " << raw << std::endl;
-				std::cout << "In PARSING_CHUNCKED_DONE PARSING_ERROR\n";
 				assign_state(PARSING_ERROR, raw.at(i));
-			}
 			break ;
 		case PARSING_CHUNCKED_FINAL_CR:
 			if (raw.at(i) == '\n')
@@ -363,29 +343,27 @@ void HttpTransaction::process_request(int epollfd, int curr_socket)
 		else if (location->alias.size() != 0)
 		{
 			std::string file_name;
-			std::string final_path;
 			std::size_t len_file_name;
 			len_file_name =
 				std::max(static_cast<std::size_t>(0),
 							request.uri.size() - request.uri.find_last_of('/') - 1);
 			if (len_file_name != 0)
 				file_name = std::string(request.uri,request.uri.find_last_of('/') + 1, len_file_name);
-			final_path = location->alias + file_name;
-			prepare_response(epollfd, curr_socket, final_path);
+			request.final_path = location->alias + file_name;
+			prepare_response(epollfd, curr_socket);
 		}
 		else
 		{
-			std::string final_path;
 			std::string target_resource = request.uri;
 
 			target_resource = target_resource.substr(location->path.length(), target_resource.length() - location->path.length());
 			std::cout << "Location path: "<< location->path << std::endl;
 			std::cout << "Target resource: "<< target_resource << std::endl;
-			final_path = location->root + "/" + target_resource;
-			std::cout << "This is the final_path: " << final_path << std::endl;
-			if (!location->cgi_ext.empty() && ft_ends_with(final_path, location->cgi_ext) && request.method == "POST")
-				final_path = build_cgi_path();
-			prepare_response(epollfd, curr_socket, final_path);
+			request.final_path = location->root + "/" + target_resource;
+			std::cout << "This is the final_path: " << request.final_path << std::endl;
+			if (!location->cgi_ext.empty() && ft_ends_with(request.final_path, location->cgi_ext) && request.method == "POST")
+				request.final_path = build_cgi_path();
+			prepare_response(epollfd, curr_socket);
 		}
 	}
 	else if (state == PARSING_ERROR)
@@ -408,7 +386,6 @@ void HttpTransaction::process_request(int epollfd, int curr_socket)
 		build_error_response(500);
 		change_socket_epollout(epollfd, curr_socket);		
 	}
-
 }
 
 std::string HttpTransaction::build_cgi_path()
@@ -422,22 +399,22 @@ std::string HttpTransaction::build_cgi_path()
 					request.uri.size() - request.uri.find_last_of('/') - 1);
 	if (len_file_name != 0)
 		file_name = std::string(request.uri,request.uri.find_last_of('/') + 1, len_file_name);
-	final_path = "./var/www/cgi-bin/" + file_name;
+	final_path = location->cgi_script_root + "/" + file_name;
 	printf("%s\n\n", final_path.c_str());
 	return (final_path);	
 }
 
-void HttpTransaction::prepare_response(int epollfd, int curr_socket, std::string final_path)
+void HttpTransaction::prepare_response(int epollfd, int curr_socket)
 {
 	struct stat	s;
 	CgiHandler cgi;
 
-	if (stat(final_path.c_str(), &s) == 0)
+	if (stat(request.final_path.c_str(), &s) == 0)
 	{
 		if(request.method == "GET")
-			prepare_response_get(final_path, s);
+			prepare_response_get(s);
 		else if (request.method == "POST")
-			prepare_response_post(curr_socket, final_path, s);
+			prepare_response_post(curr_socket, s);
 		else if (request.method == "DELETE") {}
 			// To add
 		else
@@ -449,17 +426,17 @@ void HttpTransaction::prepare_response(int epollfd, int curr_socket, std::string
 		change_socket_epollout(epollfd, curr_socket);
 }
 
-void HttpTransaction::prepare_response_get(std::string final_path,struct stat &s)
+void HttpTransaction::prepare_response_get(struct stat &s)
 {
-	build_response_found_resource(location, s, final_path);
+	build_response_found_resource(location, s);
 }
 
-void HttpTransaction::prepare_response_post(int curr_socket, std::string final_path, struct stat &s)
+void HttpTransaction::prepare_response_post(int curr_socket, struct stat &s)
 {
 	CgiHandler cgi;
 
 	if (location->cgi_ext.size() != 0 &&
-		ft_ends_with(final_path, location->cgi_ext) == true)
+		ft_ends_with(request.final_path, location->cgi_ext) == true)
 	{
 		// create temp file
 		std::string temp_path = "./var/www/temp/webserv_upload_" + ft_int_to_string(getpid()) + "_" + ft_int_to_string(curr_socket)+ ".tmp";
@@ -485,9 +462,12 @@ void HttpTransaction::prepare_response_post(int curr_socket, std::string final_p
 		cgi_info.input_doc_path = temp_path;
 		
 		// execute cgi
-		cgi_info = cgi.execute(location->cgi_path, final_path,
+		printf("This is final path: %s\n", request.final_path.c_str());
+		printf("This is cgi_info before execute\npipe_fd: %d;\npid: %d;\nis_started: %i;\nbuffer: %s\n;input_doc_path: %s\n", cgi_info.pipe_fd, cgi_info.pid, cgi_info.is_started, cgi_info.buffer.c_str(), cgi_info.input_doc_path.c_str());
+		cgi_info = cgi.execute(location->cgi_path, request.final_path,
 				cgi_info.input_doc_path, *this, curr_socket);
 		state = WAITING_CGI;
+		printf("This is cgi_info after execute\npipe_fd: %d;\npid: %d;\nis_started: %i;\nbuffer: %s\n;input_doc_path: %s\n", cgi_info.pipe_fd, cgi_info.pid, cgi_info.is_started, cgi_info.buffer.c_str(), cgi_info.input_doc_path.c_str());
 		if (cgi_info.is_started == false)
 		{
 			unlink(temp_path.c_str());
@@ -495,25 +475,24 @@ void HttpTransaction::prepare_response_post(int curr_socket, std::string final_p
 		}
 	}
 	else
-		build_response_found_resource(location, s, final_path);
+		build_response_found_resource(location, s);
 }
 
 
-void HttpTransaction::build_response_found_resource(
-	const Location *matched_location, struct stat &s, std::string &final_path)
+void HttpTransaction::build_response_found_resource(const Location *matched_location, struct stat &s)
 {
 	std::ifstream html_file;
 	// If the request uri matches a directory
 	if (S_ISDIR(s.st_mode))
 	{
 		std::cout << "Inside the directory section\n";
-		if (final_path.at(final_path.length() - 1) != '/')
-			final_path += "/";
+		if (request.final_path.at(request.final_path.length() - 1) != '/')
+			request.final_path += "/";
 		
 		// check if location has indices to return
 		for (size_t i = 0; i < matched_location->index.size(); i++)
 		{
-			std::string index_path = final_path + matched_location->index.at(i);
+			std::string index_path = request.final_path + matched_location->index.at(i);
 			std::cout << "This is index_path: " << index_path << std::endl;
 			if (open_file(&index_path.at(0), html_file) == true)
 			{
@@ -525,7 +504,7 @@ void HttpTransaction::build_response_found_resource(
 		// given there were no indices, check if we can return autoindex
 		if (matched_location->autoindex == true)
 		{
-			response.set_body(build_autoindex_string(final_path));
+			response.set_body(build_autoindex_string(request.final_path));
 			if (response.get_body().size() == 0)
 			{
 				build_error_response(500);
@@ -540,7 +519,7 @@ void HttpTransaction::build_response_found_resource(
 	// If it is not a directory, it is a file
 	else
 	{
-		if (open_file(&final_path.at(0), html_file) == true)
+		if (open_file(&request.final_path.at(0), html_file) == true)
 		{
 			response.set_body(file_to_string(html_file));
 			response.build_response(200);

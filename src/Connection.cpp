@@ -6,7 +6,7 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 12:21:35 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/18 00:30:25 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/18 12:04:50 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -82,7 +82,7 @@ int Connection::read_full_recv()
 	buffer.resize(BUFFER_SIZE);
 	bytes_received = recv(socket_fd, &buffer[0], BUFFER_SIZE, 0);
 
-	std::cout << "This is the buffer: '" << buffer << "';" << std::endl;
+	// std::cout << "This is the buffer: '" << buffer << "';" << std::endl;
 	// std::cout << "This is the buffer: '";
 	// for (size_t i = 0; i < buffer.size(); i++)
 	// {
@@ -114,11 +114,11 @@ int Connection::read_full_recv()
 void Connection::send_response()
 {
 	HttpResponse &response = this->current_transaction->response;
-	size_t missing_bytes =
-		response._response_buffer.size() - response._bytes_sent;
-	ssize_t current_sent_bytes =
-		send(socket_fd, &response._response_buffer[response._bytes_sent],
+	size_t missing_bytes = response._response_buffer.size() - response._bytes_sent;
+	ssize_t current_sent_bytes = send(socket_fd, &response._response_buffer[response._bytes_sent],
 				missing_bytes, MSG_NOSIGNAL);
+
+	std::cout << "Response buffer: " << response._response_buffer << "\n";
 	if (current_sent_bytes > 0)
 	{
 		response._bytes_sent += current_sent_bytes;
@@ -127,6 +127,7 @@ void Connection::send_response()
 	{
 		// Fatal error
 		std::cerr << "Send error\n";
+		exit(1);
 		return ;
 	}
 	if (response._bytes_sent < response._response_buffer.size())

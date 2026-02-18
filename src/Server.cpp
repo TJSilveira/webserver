@@ -6,7 +6,7 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 12:23:47 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/17 16:01:49 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/18 16:32:28 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,6 +24,7 @@ std::string directives_array[] = {"listen",
 									"return",
 									"upload_store",
 									"alias",
+									"cgi_script_root",
 									"cgi_path",
 									"cgi_ext",
 									"allow_methods",
@@ -50,7 +51,7 @@ Server::Server(t_server &server_config)
 	t_directive	curr_directive;
 	int			last_index;
 	int			error_num;
-			bool autoindex_status;
+	bool		autoindex_status;
 
 	for (size_t i = 0; i < server_config.dir.size(); i++)
 	{
@@ -277,7 +278,22 @@ void Server::cgi_read_handler(int epollfd, int cgifd)
 	close(cgifd);
 	cgi_output_map.erase(cgifd);
 	waitpid(cgifd, &status, WNOHANG);
-	conn.current_transaction->response._response_buffer = conn.current_transaction->cgi_info.buffer;
+	if (WEXITSTATUS(status) == 1)
+	{
+		conn.current_transaction->build_error_response(500);
+		change_socket_epollout(epollfd, client_fd);
+	}
+	
+	if (conn.current_transaction->cgi_info.buffer.length() > 8 && conn.current_transaction->cgi_info.buffer.substr(0, 8) == "Status: ")
+	{
+		conn.current_transaction->response._response_buffer = "HTTP/1.1 ";
+		conn.current_transaction->response._response_buffer += 
+			conn.current_transaction->cgi_info.buffer.substr(8, 
+				conn.current_transaction->cgi_info.buffer.length() - 8);
+	}
+	else
+		conn.current_transaction->response._response_buffer = conn.current_transaction->cgi_info.buffer;
+	std::cout << "This is response_buffer: " << conn.current_transaction->response._response_buffer << ";" <<std::endl;
 	conn.current_transaction->state = HttpTransaction::SENDING;
 	change_socket_epollout(epollfd, client_fd);
 }

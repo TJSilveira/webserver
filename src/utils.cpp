@@ -6,7 +6,7 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/01/14 17:29:14 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/17 22:39:17 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/18 12:26:15 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -43,7 +43,6 @@ int	extract_hexa_to_int(std::string str)
 {
 	int	n;
 
-	std::cout << "This is the string being extracted: " << str << std::endl;
 	std::istringstream(str) >> std::hex >> n;
 	return (n);
 }

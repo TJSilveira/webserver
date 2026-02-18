@@ -6,7 +6,7 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 12:23:33 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/16 12:23:35 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/18 11:47:57 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -99,6 +99,13 @@ Location::Location(const t_location &location_config,
 									curr_directive.name);
 			this->upload_store = curr_directive.args.at(0);
 		}
+		else if (curr_directive.name == "cgi_script_root")
+		{
+			if (curr_directive.args.size() != 1)
+				throw ConfigError("cgi_script_root must only have one path assigned",
+									curr_directive.name);
+			this->cgi_script_root = curr_directive.args.at(0);
+		}
 		else if (curr_directive.name == "cgi_ext")
 		{
 			if (curr_directive.args.size() != 1)
@@ -139,6 +146,7 @@ std::ostream &operator<<(std::ostream &os, const Location &loc)
 	os << "Autoindex: " << (loc.autoindex ? "on" : "off") << "\n";
 	os << "Client Max Body Size: " << loc.client_max_body_size << "\n";
 	os << "Upload Store: " << loc.upload_store << "\n";
+	os << "CGI Scripts dir: " << loc.cgi_script_root << "\n";
 	os << "CGI Path: " << loc.cgi_path << "\n";
 	os << "CGI Extension: " << loc.cgi_ext << "\n";
 	os << "Index Files: ";

@@ -6,7 +6,7 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 12:18:09 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/16 13:02:16 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/18 18:00:18 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -35,6 +35,8 @@ public:
 	std::string protocol;
 	std::map<std::string, std::string> headers;
 	std::string body;
+	std::string	final_path;						// Actual path of the resource requested
+	std::string	final_dir;						// Actual path of the resource requested
 };
 
 std::ostream &operator<<(std::ostream &os, const HttpRequest &req);

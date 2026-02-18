@@ -6,7 +6,7 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/12 15:26:06 by amoiseik          #+#    #+#             */
-/*   Updated: 2026/02/17 10:51:02 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/18 19:31:21 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -35,7 +35,8 @@ CgiHandler::_buildEnvMap(const HttpTransaction &tran, int curr_socket)
 	env["SERVER_PROTOCOL"] = req.protocol.empty() ? "HTTP/1.1" : req.protocol;
 	env["SERVER_SOFTWARE"] = "Webserv/1.0";
 	// 2. Server data
-	env["SERVER_NAME"] = tran.vir_server->server_name;
+	// env["SERVER_NAME"] = tran.vir_server->server_name;
+	env["SERVER_NAME"] = "localhost";
 	std::stringstream ss_port;
 	ss_port << tran.vir_server->listen;
 	env["SERVER_PORT"] = ss_port.str();
@@ -52,19 +53,20 @@ CgiHandler::_buildEnvMap(const HttpTransaction &tran, int curr_socket)
 		env["PATH_INFO"] = full_uri;
 		env["QUERY_STRING"] = "";
 	}
+    env["REQUEST_URI"] = req.uri;
+
 	// 4. Method and headers
 	env["REQUEST_METHOD"] = req.method;
 	std::map<std::string, std::string>::const_iterator it;
 	it = req.headers.find("Content-Length");
-	env["CONTENT_LENGTH"] = (it != req.headers.end()) ? it->second : "0";
+	env["CONTENT_LENGTH"] = ft_int_to_string(req.body.length());
 	it = req.headers.find("Content-Type");
 	env["CONTENT_TYPE"] = (it != req.headers.end()) ? it->second : "";
 	// 5. Pathes
-	const std::string root =
-		tran.location->root.empty() ? tran.vir_server->root : tran.location->root;
+	const std::string root = tran.location->root.empty() ? tran.vir_server->root : tran.location->root;
 	env["DOCUMENT_ROOT"] = root;
-	env["PATH_TRANSLATED"] = root + env["PATH_INFO"];
-	env["SCRIPT_NAME"] = env["PATH_INFO"];
+	env["PATH_TRANSLATED"] = env["PATH_INFO"];
+	env["SCRIPT_NAME"] = "";
 	// 5. Cookie
 	it = req.headers.find("Cookie");
 	if (it != req.headers.end())
@@ -79,6 +81,12 @@ CgiHandler::_buildEnvMap(const HttpTransaction &tran, int curr_socket)
 		remote_addr = inet_ntoa(addr.sin_addr);
 	}
 	env["REMOTE_ADDR"] = remote_addr;
+
+	std::map<std::string, std::string>::iterator it_curr = env.begin();
+	for (; it_curr != env.end(); it_curr++)
+	{
+		std::cout << "export " << it_curr->first << "="<< it_curr->second << "\n";
+	}
 	return (env);
 }
 
@@ -195,12 +203,6 @@ struct CgiInfo CgiHandler::execute(const std::string &interpreterPath,
 		std::cout << "IN CHILD PROCESS: before dup2\n";
 		dup2(pipe_out[WRITE], STDOUT_FILENO);
 
-		int devnull_err = open("/dev/null", O_WRONLY);
-		if (devnull_err != -1)
-		{
-			dup2(devnull_err, STDERR_FILENO);
-			close(devnull_err);
-		}
 		close(pipe_out[READ]);
 		close(pipe_out[WRITE]);
 		// 3. Execute script
@@ -208,12 +210,13 @@ struct CgiInfo CgiHandler::execute(const std::string &interpreterPath,
 		argv[1] = const_cast<char *>(scriptPath.c_str());
 		argv[2] = NULL;
 		execve(argv[0], argv, envp);
+		write(STDERR_FILENO, "execve failed\n", 14);
 		exit(1);
 	}
 	// PARENT PROCESS
 	close(pipe_out[WRITE]);
 	_freeEnv(envp);
-	info.pipe_fd = pipe_out[READ]; // need to add this fd to the poll loop
+	info.pipe_fd = pipe_out[READ];
 	info.is_started = true;
 	info.input_doc_path = bodyFilePath;
 	std::cout << "IN PARENT PROCESS: just before return\n";
