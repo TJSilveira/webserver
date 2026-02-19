@@ -6,7 +6,7 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/01/14 17:29:14 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/16 13:09:15 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/19 17:44:03 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -49,13 +49,8 @@ int	main(int argc, char *argv[])
 	open_and_validate_file(argv[1], conf_file);
 	conf_str = file_to_string(conf_file);
 	conf_file.close();
-	std::cout << "========== [Lexer] ==========\n\n";
-	std::cout << conf_str << "\n";
 	Lexer lexer(conf_str);
-	std::cout << lexer;
-	std::cout << "========== [Parser] ==========\n\n";
 	Parser parser(lexer);
-	std::cout << parser;
 	signal(SIGINT, sig_handler);
 	signal(SIGTERM, sig_handler);
 	Server main_server(parser.server);

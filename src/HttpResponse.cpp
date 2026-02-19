@@ -6,7 +6,7 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 12:22:12 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/16 13:04:42 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/19 15:54:05 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -159,8 +159,13 @@ std::map<int, std::string> HttpResponse::initHttpStatusCodes()
 std::map<int, std::string> HttpResponse::http_status_codes =
 	HttpResponse::initHttpStatusCodes();
 
+#include <fcntl.h>
+#include <sys/time.h>
+#include <stdlib.h>
+#include <unistd.h>
+
 std::ostream &operator<<(std::ostream &os, const HttpResponse &resp)
 {
-	os << resp._response_buffer;
+	os << resp._response_buffer.substr(0, std::min(resp._response_buffer.size(), (size_t)500));
 	return (os);
 }

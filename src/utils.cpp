@@ -6,7 +6,7 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/01/14 17:29:14 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/18 12:26:15 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/19 14:51:18 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -84,4 +84,27 @@ bool	ft_ends_with(const std::string &str, const std::string &to_search)
 		return (true);
 	else
 		return (false);
+}
+
+std::string	ft_to_upper(std::string orginal)
+{
+	std::string res = orginal;
+
+	std::transform(res.begin(), res.end(), res.begin(), ::toupper);
+	return(res); 
+}
+
+void	logger(int status, std::string msg, std::ostream &os)
+{
+	std::string red = "\033[31m";
+	std::string green = "\033[32m";
+	std::string reset = "\033[0m";
+	if (status == ERROR)
+	{
+		os << red + msg + reset << std::endl;
+	}
+	else if (status == INFO)
+	{
+		os << green + msg + reset << std::endl;
+	}
 }

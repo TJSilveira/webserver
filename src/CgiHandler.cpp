@@ -6,7 +6,7 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/12 15:26:06 by amoiseik          #+#    #+#             */
-/*   Updated: 2026/02/18 19:31:21 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/19 14:40:47 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -82,10 +82,20 @@ CgiHandler::_buildEnvMap(const HttpTransaction &tran, int curr_socket)
 	}
 	env["REMOTE_ADDR"] = remote_addr;
 
-	std::map<std::string, std::string>::iterator it_curr = env.begin();
-	for (; it_curr != env.end(); it_curr++)
+	// Add remaining headers from request to the CGI headers
+	std::map<std::string, std::string>::const_iterator	it_headers = req.headers.begin();
+	for (; it_headers != req.headers.end(); it_headers++)
 	{
-		std::cout << "export " << it_curr->first << "="<< it_curr->second << "\n";
+		if (it_headers->first != "Content-Type" && it_headers->first != "Content-Length")
+		{
+			std::string new_env = "HTTP_"; 
+			new_env += it_headers->first;
+			new_env = ft_to_upper(new_env);
+			std::replace(new_env.begin(), new_env.end(), '-', '_');
+			std::replace(new_env.begin(), new_env.end(), '/', '_');
+			std::replace(new_env.begin(), new_env.end(), '.', '_');
+			env[new_env] = it_headers->second;
+		}
 	}
 	return (env);
 }
@@ -149,7 +159,6 @@ struct CgiInfo CgiHandler::execute(const std::string &interpreterPath,
 	int		dev_null;
 	char	*argv[3];
 
-	std::cout << "Inside CGI_HANDLER\n";
 	std::map<std::string, std::string> envp_map = _buildEnvMap(tran,
 			curr_socket);
 	envp = _prepareEnv(envp_map);
@@ -174,11 +183,9 @@ struct CgiInfo CgiHandler::execute(const std::string &interpreterPath,
 	// CHILD PROCESS
 	if (info.pid == 0)
 	{
-		std::cout << "IN CHILD PROCESS\n";
 		// 1. Read body from file
 		if (!bodyFilePath.empty())
 		{
-			std::cout << "IN CHILD PROCESS: in bodyfilepath\n";
 			fd_in = open(bodyFilePath.c_str(), O_RDONLY);
 			if (fd_in != -1)
 			{
@@ -192,7 +199,6 @@ struct CgiInfo CgiHandler::execute(const std::string &interpreterPath,
 		}
 		else
 		{
-			std::cout << "IN CHILD PROCESS: in null\n";
 			dev_null = open("/dev/null", O_RDONLY);
 			if (dev_null != -1)
 			{
@@ -200,7 +206,6 @@ struct CgiInfo CgiHandler::execute(const std::string &interpreterPath,
 				close(dev_null);
 			}
 		}
-		std::cout << "IN CHILD PROCESS: before dup2\n";
 		dup2(pipe_out[WRITE], STDOUT_FILENO);
 
 		close(pipe_out[READ]);
@@ -219,6 +224,5 @@ struct CgiInfo CgiHandler::execute(const std::string &interpreterPath,
 	info.pipe_fd = pipe_out[READ];
 	info.is_started = true;
 	info.input_doc_path = bodyFilePath;
-	std::cout << "IN PARENT PROCESS: just before return\n";
 	return (info);
 }

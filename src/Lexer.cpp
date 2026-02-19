@@ -6,7 +6,7 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 12:22:40 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/16 13:06:43 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/19 17:41:56 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,12 +28,8 @@ bool	is_delim(std::string &config_str, int loc, std::vector<char> &delim)
 {
 	for (size_t i = 0; i < delim.size(); i++)
 	{
-		// std::cout << "*This is a delim* [" << delim[i] <<"]\n";
 		if (config_str[loc] == delim[i])
-		{
-			// std::cout << "*This is a delim* [" << config_str[loc] <<"]\n";
 			return (true);
-		}
 	}
 	return (false);
 }
@@ -120,9 +116,7 @@ std::ostream &operator<<(std::ostream &os, const Lexer &obj)
 			it != obj._token_list.end();
 			it++)
 	{
-		// Debug
-		os << "Content: " << it->content << "; type: " << it->type << std::endl;
-		// os << it->content ;
+		os << it->content ;
 	}
 	return (os);
 }

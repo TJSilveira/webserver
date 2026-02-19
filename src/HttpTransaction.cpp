@@ -6,7 +6,7 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 12:22:21 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/18 17:57:55 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/19 19:02:30 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -33,9 +33,12 @@ void HttpTransaction::parse(const std::string &raw)
 		case PARSING_REQ_METHOD:
 			if (raw.at(i) == ' ')
 			{
-				this->state = PARSING_REQ_URI;
+				assign_state(PARSING_REQ_URI);
 				if (this->request.add_method(temp) == -1)
-					assign_state(PARSING_ERROR, raw.at(i));
+				{
+					printf("NOT ALLOWED METHOD\n");
+					assign_state(PARSING_ERROR, raw.at(i), i, raw);	
+				}
 				temp.clear();
 			}
 			else
@@ -44,7 +47,7 @@ void HttpTransaction::parse(const std::string &raw)
 		case PARSING_REQ_URI:
 			if (raw.at(i) == ' ')
 			{
-				this->state = PARSING_REQ_VERSION;
+				assign_state(PARSING_REQ_VERSION);
 				this->request.uri = temp;
 				temp.clear();
 			}
@@ -54,7 +57,7 @@ void HttpTransaction::parse(const std::string &raw)
 		case PARSING_REQ_VERSION:
 			if (raw.at(i) == '\r')
 			{
-				this->state = PARSING_REQ_LINE_CR;
+				assign_state(PARSING_REQ_LINE_CR);
 				this->request.protocol = temp;
 				temp.clear();
 			}
@@ -64,21 +67,21 @@ void HttpTransaction::parse(const std::string &raw)
 		case PARSING_REQ_LINE_CR:
 			if (raw.at(i) == '\n')
 			{
-				this->state = PARSING_HEADER_KEY;
+				assign_state(PARSING_HEADER_KEY);
 				this->location = find_location();
 				if (this->location == NULL)
-					assign_state(PARSING_ERROR, raw.at(i));
+					assign_state(PARSING_ERROR, raw.at(i), i, raw);
 			}
 			else
-				assign_state(PARSING_ERROR, raw.at(i));
+				assign_state(PARSING_ERROR, raw.at(i), i, raw);
 			break ;
 		case PARSING_HEADER_KEY:
 			if (raw.at(i) == ':')
 			{
-				this->state = PARSING_HEADER_OWS;
+				assign_state(PARSING_HEADER_OWS);
 			}
 			else if (isspace(raw.at(i)))
-				assign_state(PARSING_ERROR, raw.at(i));
+				assign_state(PARSING_ERROR, raw.at(i), i, raw);
 			else
 				temp_key += raw.at(i);
 			break ;
@@ -86,17 +89,17 @@ void HttpTransaction::parse(const std::string &raw)
 			if (raw.at(i) == ' ')
 				continue ;
 			else if (raw.at(i) == '\r' || raw.at(i) == '\n')
-				assign_state(PARSING_ERROR, raw.at(i));
+				assign_state(PARSING_ERROR, raw.at(i), i, raw);
 			else
 			{
-				this->state = PARSING_HEADER_VALUE;
+				assign_state(PARSING_HEADER_VALUE);
 				i--;
 			}
 			break ;
 		case PARSING_HEADER_VALUE:
 			if (raw.at(i) == '\r')
 			{
-				this->state = PARSING_HEADER_CR;
+				assign_state(PARSING_HEADER_CR);
 				this->request.headers.insert(std::make_pair(temp_key,
 							temp_value));
 				temp_value.clear();
@@ -107,18 +110,18 @@ void HttpTransaction::parse(const std::string &raw)
 			break ;
 		case PARSING_HEADER_CR:
 			if (raw.at(i) == '\n')
-				this->state = PARSING_HEADER_DONE;
+				assign_state(PARSING_HEADER_DONE);
 			else
-				assign_state(PARSING_ERROR, raw.at(i));
+				assign_state(PARSING_ERROR, raw.at(i), i, raw);
 			break ;
 		case PARSING_HEADER_DONE:
 			if (raw.at(i) == '\r')
-				this->state = PARSING_HEADER_FINAL_CR;
+				assign_state(PARSING_HEADER_FINAL_CR);
 			else if (isspace(raw.at(i)))
-				assign_state(PARSING_ERROR, raw.at(i));
+				assign_state(PARSING_ERROR, raw.at(i), i, raw);
 			else
 			{
-				this->state = PARSING_HEADER_KEY;
+				assign_state(PARSING_HEADER_KEY);
 				i--;
 			}
 			break ;
@@ -130,52 +133,51 @@ void HttpTransaction::parse(const std::string &raw)
 						atoi(this->request.headers.at("Content-Length").c_str())) >
 						location->client_max_body_size)
 				{
-					this->state = ERROR_EXCEEDS_LIMIT;
+					printf("TK: %i\n", state);
+					assign_state(ERROR_EXCEEDS_LIMIT);
 					break ;
 				}
 				if (this->request.headers.count("Content-Length") == 1)
-					this->state = PARSING_BODY;
+					assign_state(PARSING_BODY);
 				else if (this->request.headers.count("Transfer-Encoding") == 1
 						&&
 							this->request.headers.at("Transfer-Encoding") == "chunked")
 				{
-					this->state = PARSING_CHUNCKED_SIZE;
-					std::cout << "In the chunked\n";
+					assign_state(PARSING_CHUNCKED_SIZE);
 				}
 				else
 				{
-					std::cout << "Exited as processing\n";
-					this->state = PROCESSING;
+					assign_state(PROCESSING);
 				}
 			}
 			else
-				assign_state(PARSING_ERROR, raw.at(i));
+				assign_state(PARSING_ERROR, raw.at(i), i, raw);
 			break ;
 		case PARSING_BODY:
 			if (this->request.headers.count("Content-Length") == 0)
 			{
-				this->state = PROCESSING;
+				assign_state(PROCESSING);
 				break ;
 			}
 			else if (this->request.body.size() >=
 						static_cast<size_t>(atoi(this->request.headers.at("Content-Length").c_str())))
 			{
-				assign_state(PARSING_ERROR, raw.at(i));
+				assign_state(PARSING_ERROR, raw.at(i), i, raw);
 				break ;
 			}
 			this->request.body += raw.at(i);
 			if (this->request.body.size() ==
 				static_cast<size_t>(
 					atoi(this->request.headers.at("Content-Length").c_str())))
-				this->state = PROCESSING;
+				assign_state(PROCESSING);
 			break ;
 		case PARSING_CHUNCKED_SIZE:
 			if (raw.at(i) == '\r')
 			{
 				if (parse_chuncked_size_str.size() == 0)
-					assign_state(PARSING_ERROR, raw.at(i));
+					assign_state(PARSING_ERROR, raw.at(i), i, raw);
 				else
-					this->state = PARSING_CHUNCKED_SIZE_CR;
+					assign_state(PARSING_CHUNCKED_SIZE_CR);
 				break ;
 			}
 			else if (raw.at(i) == ' ')
@@ -190,25 +192,27 @@ void HttpTransaction::parse(const std::string &raw)
 			parse_chuncked_size_str.clear();
 			if (static_cast<size_t>(parse_chuncked_bytes_to_read) > location->client_max_body_size)
 			{
-				state = ERROR_EXCEEDS_LIMIT;
+				printf("TK ERROR_EXCEEDS_LIMIT: %i\n", state);
+				assign_state(ERROR_EXCEEDS_LIMIT);
 				return;
 			}
 			
 			if (parse_chuncked_bytes_to_read == 0)
 				parse_is_last_chunck = true;
 			if (raw.at(i) == '\n' && parse_is_last_chunck == false)
-				this->state = PARSING_CHUNCKED_BODY;
+				assign_state(PARSING_CHUNCKED_BODY);
 			else if (raw.at(i) == '\n' && parse_is_last_chunck == true)
-				this->state = PARSING_CHUNCKED_DONE;
+				assign_state(PARSING_CHUNCKED_DONE);
 			else
 			{
-				assign_state(PARSING_ERROR, raw.at(i));
+				assign_state(PARSING_ERROR, raw.at(i), i, raw);
 			}
 			break ;
 		case PARSING_CHUNCKED_BODY:
-			if (location != NULL && request.body.size() >= location->client_max_body_size)
+			if (location != NULL && request.body.size() >= location->client_max_body_size && parse_chuncked_bytes_to_read > 0)
 			{
-				state = ERROR_EXCEEDS_LIMIT;
+				printf("TK: %i\n", state);
+				assign_state(ERROR_EXCEEDS_LIMIT);
 				return;
 			}
 			if (parse_chuncked_bytes_to_read > 0)
@@ -217,44 +221,46 @@ void HttpTransaction::parse(const std::string &raw)
 				parse_chuncked_bytes_to_read--;
 			}
 			else if (parse_chuncked_bytes_to_read == 0 && raw.at(i) == '\r')
-				this->state = PARSING_CHUNCKED_CR;
+				assign_state(PARSING_CHUNCKED_CR);
 			else
-				assign_state(PARSING_ERROR, raw.at(i));
+				assign_state(PARSING_ERROR, raw.at(i), i, raw);
 			break ;
 		case PARSING_CHUNCKED_CR:
 			if (raw.at(i) == '\n')
-				this->state = PARSING_CHUNCKED_SIZE;
+				assign_state(PARSING_CHUNCKED_SIZE);
 			else
-				assign_state(PARSING_ERROR, raw.at(i));
+				assign_state(PARSING_ERROR, raw.at(i), i, raw);
 			break ;
 		case PARSING_CHUNCKED_DONE:
 			if (request.body.size() > location->client_max_body_size)
 			{
-				this->state = ERROR_EXCEEDS_LIMIT;
+				printf("TK: %i\n", state);
+				assign_state(ERROR_EXCEEDS_LIMIT);
 				break ;
 			}
 			if (raw.at(i) == '\r')
-				this->state = PARSING_CHUNCKED_FINAL_CR;
+				assign_state(PARSING_CHUNCKED_FINAL_CR);
 			else
-				assign_state(PARSING_ERROR, raw.at(i));
+				assign_state(PARSING_ERROR, raw.at(i), i, raw);
 			break ;
 		case PARSING_CHUNCKED_FINAL_CR:
 			if (raw.at(i) == '\n')
 			{
 				if (request.body.size() > location->client_max_body_size)
 				{
-					this->state = ERROR_EXCEEDS_LIMIT;
+					printf("TK: %i\n", state);
+					assign_state(ERROR_EXCEEDS_LIMIT);
 					break ;
 				}
 				if (parse_is_last_chunck == true)
 				{
-					this->state = PROCESSING;
+					assign_state(PROCESSING);
 				}
 				else
-					this->state = PARSING_CHUNCKED_SIZE;
+					assign_state(PARSING_CHUNCKED_SIZE);
 			}
 			else
-				assign_state(PARSING_ERROR, raw.at(i));
+				assign_state(PARSING_ERROR, raw.at(i), i, raw);
 			break ;
 		default:
 			break ;
@@ -362,7 +368,11 @@ void HttpTransaction::process_request(int epollfd, int curr_socket)
 			request.final_path = location->root + "/" + target_resource;
 			std::cout << "This is the final_path: " << request.final_path << std::endl;
 			if (!location->cgi_ext.empty() && ft_ends_with(request.final_path, location->cgi_ext) && request.method == "POST")
+			{
 				request.final_path = build_cgi_path();
+				prepare_response_post_cgi(curr_socket);
+				return;
+			}
 			prepare_response(epollfd, curr_socket);
 		}
 	}
@@ -378,6 +388,7 @@ void HttpTransaction::process_request(int epollfd, int curr_socket)
 	}
 	else if (state == ERROR_EXCEEDS_LIMIT)
 	{
+		response.add_header("Connection", "close");
 		build_error_response(413);
 		change_socket_epollout(epollfd, curr_socket);
 	}
@@ -437,45 +448,48 @@ void HttpTransaction::prepare_response_post(int curr_socket, struct stat &s)
 
 	if (location->cgi_ext.size() != 0 &&
 		ft_ends_with(request.final_path, location->cgi_ext) == true)
-	{
-		// create temp file
-		std::string temp_path = "./var/www/temp/webserv_upload_" + ft_int_to_string(getpid()) + "_" + ft_int_to_string(curr_socket)+ ".tmp";
-
-		int body_fd = open(temp_path.c_str(), O_CREAT | O_WRONLY | O_TRUNC, 0600);
-		if (body_fd == -1)
-		{
-			std::cout << "Problem in first if\n";
-			build_error_response(500);
-			return;
-    	}
-
-		// write request body into file
-		ssize_t written_size = write(body_fd, request.body.data(), request.body.size());
-		if (written_size != static_cast<ssize_t>(request.body.size()))
-		{
-			std::cout << "Problem in second if\n";
-			unlink(temp_path.c_str());
-			build_error_response(500);
-			return;
-		}
-		close(body_fd);
-		cgi_info.input_doc_path = temp_path;
-		
-		// execute cgi
-		printf("This is final path: %s\n", request.final_path.c_str());
-		printf("This is cgi_info before execute\npipe_fd: %d;\npid: %d;\nis_started: %i;\nbuffer: %s\n;input_doc_path: %s\n", cgi_info.pipe_fd, cgi_info.pid, cgi_info.is_started, cgi_info.buffer.c_str(), cgi_info.input_doc_path.c_str());
-		cgi_info = cgi.execute(location->cgi_path, request.final_path,
-				cgi_info.input_doc_path, *this, curr_socket);
-		state = WAITING_CGI;
-		printf("This is cgi_info after execute\npipe_fd: %d;\npid: %d;\nis_started: %i;\nbuffer: %s\n;input_doc_path: %s\n", cgi_info.pipe_fd, cgi_info.pid, cgi_info.is_started, cgi_info.buffer.c_str(), cgi_info.input_doc_path.c_str());
-		if (cgi_info.is_started == false)
-		{
-			unlink(temp_path.c_str());
-			build_error_response(500);
-		}
-	}
+		prepare_response_post_cgi(curr_socket);
 	else
 		build_response_found_resource(location, s);
+}
+
+void HttpTransaction::prepare_response_post_cgi(int curr_socket)
+{
+	CgiHandler cgi;
+
+	// create temp file
+	std::string temp_path = "./var/www/temp/webserv_upload_" + ft_int_to_string(getpid()) + "_" + ft_int_to_string(curr_socket)+ ".tmp";
+
+	int body_fd = open(temp_path.c_str(), O_CREAT | O_WRONLY | O_TRUNC, 0600);
+	if (body_fd == -1)
+	{
+		build_error_response(500);
+		return;
+	}
+
+	// write request body into file
+	ssize_t written_size = write(body_fd, request.body.data(), request.body.size());
+	if (written_size != static_cast<ssize_t>(request.body.size()))
+	{
+		unlink(temp_path.c_str());
+		build_error_response(500);
+		return;
+	}
+	close(body_fd);
+	cgi_info.input_doc_path = temp_path;
+	
+	// execute cgi
+	printf("This is final path: %s\n", request.final_path.c_str());
+	printf("This is cgi_info before execute\npipe_fd: %d;\npid: %d;\nis_started: %i;\nbuffer: %s\n;input_doc_path: %s\n", cgi_info.pipe_fd, cgi_info.pid, cgi_info.is_started, cgi_info.buffer.c_str(), cgi_info.input_doc_path.c_str());
+	cgi_info = cgi.execute(location->cgi_path, request.final_path,
+			cgi_info.input_doc_path, *this, curr_socket);
+	state = WAITING_CGI;
+	printf("This is cgi_info after execute\npipe_fd: %d;\npid: %d;\nis_started: %i;\nbuffer: %s\n;input_doc_path: %s\n", cgi_info.pipe_fd, cgi_info.pid, cgi_info.is_started, cgi_info.buffer.c_str(), cgi_info.input_doc_path.c_str());
+	if (cgi_info.is_started == false)
+	{
+		unlink(temp_path.c_str());
+		build_error_response(500);
+	}
 }
 
 
@@ -598,9 +612,45 @@ void HttpTransaction::mark_as_complete()
 }
 
 void HttpTransaction::assign_state(State s, char c)
-{
-    std::cerr << "PARSING_ERROR in state " << this->state 
-              << " at char '" << c << "' (0x" 
-              << std::hex << (int)(unsigned char)c << ")" << std::endl;
+{	
+	if (s == PARSING_ERROR)
+	{
+		std::cout << "[Parsing_error - Status]\ntemp: "<< temp << std::endl;
+		std::cout << "temp_key: " << temp_key << std::endl;
+		std::cout << "temp_value: " << temp_value << std::endl;
+		std::cout << "parse_chuncked_bytes_to_read: " << parse_chuncked_bytes_to_read << std::endl;
+		std::cout << "parse_chuncked_size_str: " << parse_chuncked_size_str << std::endl;
+		std::cout << "parse_is_last_chunck: " << parse_is_last_chunck << std::endl;
+		std::cout << "==========\n";
+		std::cout << "This is the request. It should be empty\n";
+		std::cout << request << std::endl;
+		printf("This is the character related to the PARSING ERROR: %c\n", c);
+	}
+	
+    this->state = s;
+}
+
+void HttpTransaction::assign_state(State s, char c, int i, std::string str)
+{	
+	if (s == PARSING_ERROR)
+	{
+		printf("This is the character related to the PARSING ERROR: %c; this is the place it broke: %i\nThis was the string: %s\n\n\n", c, i, str.c_str());
+		std::cout << "[Parsing_error - Status]\ntemp: "<< temp << std::endl;
+		std::cout << "temp_key: " << temp_key << std::endl;
+		std::cout << "temp_value: " << temp_value << std::endl;
+		std::cout << "parse_chuncked_bytes_to_read: " << parse_chuncked_bytes_to_read << std::endl;
+		std::cout << "parse_chuncked_size_str: " << parse_chuncked_size_str << std::endl;
+		std::cout << "parse_is_last_chunck: " << parse_is_last_chunck << std::endl;
+		std::cout << "==========\n";
+		std::cout << "This is the request. It should be empty\n";
+		std::cout << request << std::endl;
+		printf("This is the character related to the PARSING ERROR: %c\n", c);
+	}
+	
+    this->state = s;
+}
+
+void HttpTransaction::assign_state(State s)
+{	
     this->state = s;
 }

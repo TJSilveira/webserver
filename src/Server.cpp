@@ -6,7 +6,7 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 12:23:47 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/18 16:32:28 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/19 19:01:22 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,7 +17,8 @@
 #include <ostream>
 #include <vector>
 
-#define TIMEOUT_SECONDS 10
+
+#define TIMEOUT_SECONDS 20
 
 std::string directives_array[] = {"listen",
 									"server_name",
@@ -125,16 +126,15 @@ void Server::init()
 			fd = create_listening_socket(port, "0.0.0.0");
 			listening_sockfds.insert(std::make_pair(fd,	&virtual_servers.at(i)));
 			bound_ports.insert(port);
-			std::cout << "Successfully bound port: " << port
-						<< " with fd: " << fd << std::endl;
+			logger(INFO, "Successfully bound port: " + ft_int_to_string(port) + " with fd: " + ft_int_to_string(fd), std::cout);
 		}
 		else
 		{
-			perror("Port already in use");
+			logger(ERROR, "Port already in use", std::cerr);
 			exit(EXIT_FAILURE);
 		}
 	}
-	std::cout << "Server waiting for connections...\n";
+	logger(INFO, "Server waiting for connections...", std::cout);
 }
 
 void Server::run_server()
@@ -144,7 +144,7 @@ void Server::run_server()
 	epollfd = epoll_create1(0);
 	if (epollfd == -1)
 	{
-		perror("epoll_create1");
+		logger(ERROR, "epoll_create1", std::cerr);
 		exit(EXIT_FAILURE);
 	}
 	ev.events = EPOLLIN;
@@ -156,7 +156,7 @@ void Server::run_server()
 		ev.data.fd = it->first;
 		if (epoll_ctl(epollfd, EPOLL_CTL_ADD, it->first, &ev) == -1)
 		{
-			perror("epoll_ctl: listen_sock");
+			logger(ERROR, "epoll_ctl: listen_sock", std::cerr);
 			exit(EXIT_FAILURE);
 		}
 	}
@@ -167,7 +167,7 @@ void Server::run_server()
 		{
 			if (g_stop == 1)
 				break ;
-			perror("epoll_wait");
+			logger(ERROR, "epoll_wait", std::cerr);
 			exit(EXIT_FAILURE);
 		}
 		for (int i = 0; i < nfds; ++i)
@@ -192,7 +192,6 @@ void Server::run_server()
 			}
 			else
 			{
-				// std::cout << "Connection socket that needs attention: " << events[i].data.fd << std::endl;
 				conn_sock = events[i].data.fd;
 				if (events[i].events & (EPOLLERR | EPOLLHUP | EPOLLRDHUP))
 				{
@@ -214,7 +213,6 @@ void Server::read_handler(int epollfd, int socketfd)
 {
 	int	status;
 
-	// std::cout << "Inside the read\n";
 	if (active_connections.find(socketfd) == active_connections.end())
 		return ;
 	Connection &curr_connection = active_connections.at(socketfd);
@@ -222,20 +220,17 @@ void Server::read_handler(int epollfd, int socketfd)
 	if (curr_connection.current_transaction == NULL)
 		curr_connection.current_transaction =
 			new HttpTransaction(curr_connection.server_config);
-	curr_connection.update_last_activity();
 	status = curr_connection.read_full_recv();
-	// std::cout << "After read_full_recv\n";
-	// std::cout << "The state of the transaction is " << curr_connection.current_transaction->state << std::endl;
+	curr_connection.update_last_activity();
 	if (status == READ_ERROR)
 	{
-		std::cout << "CLEANING IN THE 'READ_ERROR'\n";
 		clean_connection(epollfd, socketfd);
 		return ;
 	}
 	if (status == SOCKET_FINISHED_READ)
 	{
 		// I think this is wrong. We need to find a way to send the information before closing.
-		std::cout << "Client closed connection (EOF)\n";
+		logger(INFO, "Client closed connection (EOF)", std::cout);
 		clean_connection(epollfd, socketfd);
 		return;
 	}
@@ -249,13 +244,11 @@ void Server::read_handler(int epollfd, int socketfd)
 	if (curr_connection.current_transaction->state ==
 		HttpTransaction::WAITING_CGI) // The problem is that the program is not entering this part of the code
 	{
-		std::cout << "IN THIS IF STATEMENT HttpTransaction::WAITING_CGI \n";
 		cgi_output_map.insert(
 			std::make_pair(curr_connection.current_transaction->cgi_info.pipe_fd,
 							curr_connection.socket_fd));
 		add_cgifd_epoll(epollfd, curr_connection.current_transaction->cgi_info.pipe_fd);
 	}
-	print_req_resp(curr_connection);
 }
 
 void Server::cgi_read_handler(int epollfd, int cgifd)
@@ -293,8 +286,25 @@ void Server::cgi_read_handler(int epollfd, int cgifd)
 	}
 	else
 		conn.current_transaction->response._response_buffer = conn.current_transaction->cgi_info.buffer;
-	std::cout << "This is response_buffer: " << conn.current_transaction->response._response_buffer << ";" <<std::endl;
 	conn.current_transaction->state = HttpTransaction::SENDING;
+
+	// /* debug */
+	// struct timeval tv;
+	// gettimeofday(&tv, NULL);
+	// std::string temp_path = "./var/www/temp/webserv_response_" + ft_int_to_string(tv.tv_sec) + ft_int_to_string(tv.tv_usec);
+
+	// int response_fd = open(temp_path.c_str(), O_CREAT | O_WRONLY | O_TRUNC, 0600);
+
+	// // write request body into file
+	// ssize_t written_size = write(response_fd, conn.current_transaction->response._response_buffer.data(), 1000);
+	// if (written_size != 1000)
+	// {
+	// 	std::cout << "Problem in second if\n";
+	// 	unlink(temp_path.c_str());
+	// }
+	// close(response_fd);
+	// /* end of debug*/
+
 	change_socket_epollout(epollfd, client_fd);
 }
 
@@ -303,13 +313,14 @@ void Server::send_handler(int epollfd, int socketfd)
 	if (active_connections.find(socketfd) == active_connections.end())
 		return ;
 	Connection &curr_connection = active_connections.at(socketfd);
+	print_req_resp(curr_connection);
 	if (curr_connection.current_transaction == NULL)
 		return ;
 	curr_connection.update_last_activity();
 	curr_connection.send_response();
 	if (curr_connection.current_transaction->state ==
-		curr_connection.current_transaction->COMPLETE)
-	{
+		HttpTransaction::COMPLETE)
+	{	
 		if (curr_connection.get_keep_alive() == false)
 		{
 			clean_connection(epollfd, socketfd);
@@ -320,6 +331,14 @@ void Server::send_handler(int epollfd, int socketfd)
 		delete curr_connection.current_transaction;
 		curr_connection.current_transaction = NULL;
 		change_socket_epollin(epollfd, socketfd);
+	}
+	else if (curr_connection.current_transaction->state ==
+		HttpTransaction::SENDING_ERROR)
+	{
+		if (!curr_connection.current_transaction->cgi_info.input_doc_path.empty())
+			unlink(curr_connection.current_transaction->cgi_info.input_doc_path.c_str());
+		clean_connection(epollfd, socketfd);
+		return ;
 	}
 }
 
@@ -333,11 +352,6 @@ void Server::clean_connection(int epollfd, int socketfd)
 		delete it->second.current_transaction;
 		it->second.current_transaction = NULL;
 	}
-	// if(!it->second.current_transaction->cgi_info.input_doc_path.empty())
-	// {
-	// 	unlink(it->second.current_transaction->cgi_info.input_doc_path.c_str());
-	// 	it->second.current_transaction->cgi_info.input_doc_path.clear();
-	// }
 	remove_socket_epoll(epollfd, socketfd);
 	close(socketfd);
 	active_connections.erase(it);
@@ -378,8 +392,7 @@ void Server::close_inactive_connections(int epollfd)
 	{
 		if (it->second.is_timed_out(TIMEOUT_SECONDS))
 		{
-			std::cout << "Timeout of Connection in socket " << it->second.socket_fd
-						<< std::endl;
+			logger(INFO, "Timeout of Connection in socket " + ft_int_to_string(it->second.socket_fd), std::cout);
 			clean_connection(epollfd, it->second.socket_fd);
 			if (active_connections.size() == 0)
 				break ;
@@ -431,5 +444,5 @@ void Server::print_req_resp(const Connection &curr_connection)
 	std::cout << "==== END OF THE REQUEST ====\n";
 	std::cout << "==== THIS IS THE response ====\n";
 	std::cout << curr_connection.current_transaction->response;
-	std::cout << "==== END OF THE response ====\n";
+	std::cout << "\n==== END OF THE response ====\n";
 }

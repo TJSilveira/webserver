@@ -6,7 +6,7 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 12:18:58 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/18 13:49:20 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/19 17:48:22 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -61,6 +61,7 @@ public:
 		PROCESSING,
 		WAITING_CGI,
 		SENDING,
+		SENDING_ERROR,
 		COMPLETE
 	};
 
@@ -70,6 +71,7 @@ public:
 	void prepare_response(int epollfd, int curr_socket);
 	void prepare_response_get(struct stat &s);
 	void prepare_response_post(int curr_socket, struct stat &s);
+	void prepare_response_post_cgi(int curr_socket);
 	void build_error_response(int error_code);
 	std::string build_cgi_path();
 	const Location *find_location();
@@ -81,6 +83,8 @@ public:
 
 	void mark_as_complete();
 	void assign_state(State s, char c);
+	void assign_state(State s, char c, int i, std::string str);
+	void assign_state(State s);
 
 	HttpRequest request;
 	HttpResponse response;

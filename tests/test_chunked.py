@@ -39,7 +39,7 @@ def send_chunked_request(host, port, name, request_line, headers, chunks):
 # 1. Basic POST request with 3 text chunks
 send_chunked_request(
     "localhost", 4241, "Basic POST",
-    "POST /upload HTTP/1.1",
+    "POST /post_body HTTP/1.1",
     {"Host": "localhost:4241", "Transfer-Encoding": "chunked", "Content-Type": "text/plain"},
     ["Hello ", "from ", "Perplexity!", 0]
 )
@@ -47,7 +47,7 @@ send_chunked_request(
 # 2. Request with an empty body (immediate zero-size chunk)
 send_chunked_request(
     "localhost", 4241, "Empty Body",
-    "POST /empty HTTP/1.1",
+    "POST /post_body HTTP/1.1",
     {"Host": "localhost:4241", "Transfer-Encoding": "chunked"},
     [0]
 )
@@ -55,7 +55,15 @@ send_chunked_request(
 # 3. Request with large hex sizes (testing hex parsing)
 send_chunked_request(
     "localhost", 4241, "Large Hex Size",
-    "POST /large HTTP/1.1",
+    "POST /post_body HTTP/1.1",
     {"Host": "localhost:4241", "Transfer-Encoding": "chunked"},
-    ["A" * 15, "B" * 32, 0]
+    ["A" * 50, "B" * 51, 0]
+)
+
+# 4. Request with large hex sizes (testing hex parsing)
+send_chunked_request(
+    "localhost", 4241, "Large Hex Size",
+    "POST /post_body HTTP/1.1",
+    {"Host": "localhost:4241", "Transfer-Encoding": "chunked"},
+    ["A" * 50, "B" * 50, 0]
 )

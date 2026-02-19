@@ -6,7 +6,7 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 12:21:35 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/18 12:04:50 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/19 17:29:34 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -81,32 +81,30 @@ int Connection::read_full_recv()
 	std::string buffer;
 	buffer.resize(BUFFER_SIZE);
 	bytes_received = recv(socket_fd, &buffer[0], BUFFER_SIZE, 0);
-
-	// std::cout << "This is the buffer: '" << buffer << "';" << std::endl;
-	// std::cout << "This is the buffer: '";
-	// for (size_t i = 0; i < buffer.size(); i++)
-	// {
-	// 	if (buffer.at(i) == '\r')
-	// 	{
-	// 		std::cout << "\\r";
-	// 	}
-	// 	else if (buffer.at(i) == '\n')
-	// 	{
-	// 		std::cout << "\\n";
-	// 	}
-	// 	else
-	// 		std::cout << buffer.at(i);
-	// }
-	// std::cout << "';" << std::endl;
+	if (current_transaction->request.body.size() < 500)
+	{
+		printf("\n--Start of read cycle--\n");
+		printf("This is buffer: %s\n", buffer.c_str());
+	}
 
 	if (bytes_received > 0)
 	{
 		buffer.resize(bytes_received);
 		current_transaction->parse(buffer);
+		if (current_transaction->request.body.size() < 500)
+		{
+			printf("\n--End of read cycle--\n");
+		}
 		return (BUFFER_READ);
 	}
 	else if (bytes_received == 0) // Client closed write side OR there is nothing more to read
+	{
+		if (current_transaction->request.body.size() < 500)
+		{
+			printf("\n--End of read cycle--\n");
+		}
 		return (SOCKET_FINISHED_READ);
+	}
 	else
 		return (READ_ERROR);
 }
@@ -118,16 +116,14 @@ void Connection::send_response()
 	ssize_t current_sent_bytes = send(socket_fd, &response._response_buffer[response._bytes_sent],
 				missing_bytes, MSG_NOSIGNAL);
 
-	std::cout << "Response buffer: " << response._response_buffer << "\n";
 	if (current_sent_bytes > 0)
 	{
 		response._bytes_sent += current_sent_bytes;
 	}
 	else
 	{
-		// Fatal error
-		std::cerr << "Send error\n";
-		exit(1);
+		logger(ERROR, "Send error", std::cerr);
+		current_transaction->assign_state(HttpTransaction::SENDING_ERROR);
 		return ;
 	}
 	if (response._bytes_sent < response._response_buffer.size())
