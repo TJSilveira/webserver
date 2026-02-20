@@ -1,3 +1,19 @@
+<<<<<<< Updated upstream
+=======
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   HttpTransaction.cpp                                :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: amoiseik <amoiseik@student.42.fr>          +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/02/16 12:22:21 by tsilveir          #+#    #+#             */
+/*   Updated: 2026/02/20 16:40:28 by amoiseik         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
+#include "../includes/CgiHandler.hpp"
+>>>>>>> Stashed changes
 #include "../includes/HttpTransaction.hpp"
 #include <cerrno>
 
@@ -256,7 +272,13 @@ void	HttpTransaction::process_request(int epollfd, int curr_socket)
 		// 2. Validate Method
 		if (is_allowed_method(matched_location, request.method) == false)
 		{
+<<<<<<< Updated upstream
 			build_error_reponse(405);
+=======
+			response.add_header("Location", location->return_redir.second);
+			response.set_head_method(request.method == "HEAD"); //added for seting flag is_head_method
+			response.build_response(location->return_redir.first);
+>>>>>>> Stashed changes
 			change_socket_epollout(epollfd, curr_socket);
 			return;
 		}
@@ -294,6 +316,7 @@ void	HttpTransaction::build_response_found_resource(const Location* matched_loca
 			if (open_file(&index_path.at(0), html_file) == true)
 			{
 				response.set_body(file_to_string(html_file));
+				response.set_head_method(request.method == "HEAD"); //added for seting flag is_head_method
 				response.build_response(200);
 				return;
 			}
@@ -319,6 +342,7 @@ void	HttpTransaction::build_response_found_resource(const Location* matched_loca
 		if (open_file(&final_path.at(0), html_file) == true)
 		{
 			response.set_body(file_to_string(html_file));
+			response.set_head_method(request.method == "HEAD"); //added for seting flag is_head_method
 			response.build_response(200);
 		}
 		else
@@ -330,6 +354,7 @@ void HttpTransaction::build_error_reponse(int error_code)
 {
 	response.set_status(error_code);
 	response.set_body(generate_error_page(error_code));
+	response.set_head_method(request.method == "HEAD"); //added for seting flag is_head_method
 	response.serialize_response();
 	state = SENDING;
 }

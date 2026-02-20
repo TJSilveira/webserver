@@ -1,3 +1,18 @@
+<<<<<<< Updated upstream
+=======
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   HttpResponse.cpp                                   :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: amoiseik <amoiseik@student.42.fr>          +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/02/16 12:22:12 by tsilveir          #+#    #+#             */
+/*   Updated: 2026/02/20 16:32:17 by amoiseik         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
+>>>>>>> Stashed changes
 #include "../includes/HttpResponse.hpp"
 #include "../includes/utils.hpp"
 
@@ -27,8 +42,16 @@ void	HttpResponse::serialize_response()
 	_response_buffer += "\r\n";
 	_response_buffer += serialize_headers();
 	_response_buffer += "\r\n";
+<<<<<<< Updated upstream
 	_response_buffer += this->_body;
 	std::cout << "Response: " << _response_buffer << std::endl;
+=======
+	//added next condition
+	if (!_is_head_method) {
+		_response_buffer += this->_body;
+	}
+	// _response_buffer += this->_body; //commented
+>>>>>>> Stashed changes
 }
 
 void	HttpResponse::build_response(int status_code)
