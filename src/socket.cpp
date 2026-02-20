@@ -50,10 +50,7 @@ int	accept_conn_socket(int listen_sock)
 	sin_size = sizeof(addr);
 	sockfd = accept(listen_sock, (struct sockaddr *)&addr, &sin_size);
 	if (sockfd == -1)
-	{
-		perror("accept");
 		return (-1);
-	}
 	if (setnonblocking(sockfd) == -1)
 		return (-1);
 	return (sockfd);

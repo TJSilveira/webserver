@@ -6,7 +6,7 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/01/26 22:41:05 by tiago             #+#    #+#             */
-/*   Updated: 2026/02/20 14:14:46 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/20 14:59:56 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -39,6 +39,7 @@ public:
 	void clean_connection(int epollfd, int socketfd);
 	void clean_all_connections(int epollfd);
 	void close_inactive_connections(int epollfd);
+	bool accept_connections(int epollfd, int sockfd);
 
 	// Handlers
 	void read_handler(int epollfd, int socketfd);

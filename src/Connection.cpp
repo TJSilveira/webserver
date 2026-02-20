@@ -6,7 +6,7 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 12:21:35 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/20 13:58:46 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/20 15:55:31 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,10 +21,10 @@ Connection::Connection(int socket_fd, const VirtualServer *server_config)
 
 Connection::~Connection()
 {
-		delete current_transaction;
-
 	if (current_transaction)
 	{
+		delete current_transaction;
+		current_transaction = NULL;		
 	}
 }
 
@@ -55,6 +55,11 @@ bool Connection::get_keep_alive()
 			keep_alive = false;
 	}
 	return (keep_alive);
+}
+
+void Connection::set_keep_alive(bool status)
+{
+	this->keep_alive = status;
 }
 
 void Connection::update_last_activity()

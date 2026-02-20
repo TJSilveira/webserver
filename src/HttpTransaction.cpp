@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpTransaction.cpp                                :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: amoiseik <amoiseik@student.42.fr>          +#+  +:+       +#+        */
+/*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 12:22:21 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/20 17:37:36 by amoiseik         ###   ########.fr       */
+/*   Updated: 2026/02/20 18:10:24 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -356,10 +356,10 @@ void HttpTransaction::process_request(int epollfd, int curr_socket)
 			std::string target_resource = request.uri;
 
 			target_resource = target_resource.substr(location->path.length(), target_resource.length() - location->path.length());
-			std::cout << "Location path: "<< location->path << std::endl;
-			std::cout << "Target resource: "<< target_resource << std::endl;
+			// std::cout << "Location path: "<< location->path << std::endl;
+			// std::cout << "Target resource: "<< target_resource << std::endl;
 			request.final_path = location->root + "/" + target_resource;
-			std::cout << "This is the final_path: " << request.final_path << std::endl;
+			// std::cout << "This is the final_path: " << request.final_path << std::endl;
 			if (!location->cgi_ext.empty() && ft_ends_with(request.final_path, location->cgi_ext) && request.method == "POST")
 			{
 				request.final_path = build_cgi_path();

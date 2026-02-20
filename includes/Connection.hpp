@@ -6,7 +6,7 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 12:18:02 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/20 14:45:23 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/20 15:25:00 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -44,6 +44,9 @@ public:
 
 	// Getters
 	bool get_keep_alive();
+
+	// Setter
+	void set_keep_alive(bool status);
 
 	int socket_fd;
 	const VirtualServer *server_config;

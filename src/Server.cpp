@@ -6,7 +6,7 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 12:23:47 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/20 14:51:21 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/20 17:25:10 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,7 +18,7 @@
 #include <vector>
 
 
-#define TIMEOUT_SECONDS 20
+#define TIMEOUT_SECONDS 120
 
 std::string directives_array[] = {"listen",
 									"server_name",
@@ -140,7 +140,7 @@ void Server::init()
 void Server::run_server()
 {
 	struct epoll_event ev, events[MAX_EVENTS];
-	int listen_sock, conn_sock, nfds, epollfd;
+	int socketfd, nfds, epollfd;
 	epollfd = epoll_create1(0);
 	if (epollfd == -1)
 	{
@@ -172,36 +172,25 @@ void Server::run_server()
 		}
 		for (int i = 0; i < nfds; ++i)
 		{
-			std::map<int, int>::iterator it_cgi =cgi_output_map.find(events[i].data.fd);
-			std::map<int, const VirtualServer *>::iterator it_listen_sock =	listening_sockfds.find(events[i].data.fd);
-			if (it_listen_sock != listening_sockfds.end())
-			{
-				listen_sock = it_listen_sock->first;
-				conn_sock = accept_conn_socket(listen_sock);
-				if (conn_sock != -1)
-				{
-					add_socket_epoll(epollfd, conn_sock);
-					active_connections.insert(std::make_pair(
-						conn_sock, Connection(conn_sock,
-								it_listen_sock->second)));
-				}
-			}
+			socketfd = events[i].data.fd;
+
+			std::map<int, int>::iterator it_cgi = cgi_output_map.find(socketfd);
+			if (accept_connections(epollfd, socketfd))
+				continue;
 			else if (it_cgi != cgi_output_map.end())
-			{
 				cgi_read_handler(epollfd, it_cgi->first);
-			}
 			else
 			{
-				conn_sock = events[i].data.fd;
-				if (events[i].events & (EPOLLERR | EPOLLHUP | EPOLLRDHUP))
+				socketfd = events[i].data.fd;
+				if (events[i].events & (EPOLLERR | EPOLLHUP))
 				{
-					clean_connection(epollfd, conn_sock);
+					clean_connection(epollfd, socketfd);
 					continue ;
 				}
 				if (events[i].events & EPOLLIN)
-					read_handler(epollfd, conn_sock);
+					read_handler(epollfd, socketfd);
 				if (events[i].events & EPOLLOUT)
-					send_handler(epollfd, conn_sock);
+					send_handler(epollfd, socketfd);
 			}
 		}
 		close_inactive_connections(epollfd);
@@ -229,10 +218,7 @@ void Server::read_handler(int epollfd, int socketfd)
 	}
 	if (status == SOCKET_FINISHED_READ)
 	{
-		// I think this is wrong. We need to find a way to send the information before closing.
-		logger(INFO, "Client closed connection (EOF)", std::cout);
-		clean_connection(epollfd, socketfd);
-		return;
+		curr_connection.set_keep_alive(false);
 	}
 
 	if (curr_connection.current_transaction->state < HttpTransaction::PARSING_ERROR)
@@ -240,7 +226,7 @@ void Server::read_handler(int epollfd, int socketfd)
 	
 	curr_connection.insert_keep_alive_header();
 	curr_connection.current_transaction->process_request(epollfd, socketfd);
-	std::cout << "State of the transaction after the process_request: " <<curr_connection.current_transaction->state <<std::endl;
+	// std::cout << "State of the transaction after the process_request: " <<curr_connection.current_transaction->state <<std::endl;
 	if (curr_connection.current_transaction->state ==
 		HttpTransaction::WAITING_CGI) // The problem is that the program is not entering this part of the code
 	{
@@ -313,7 +299,7 @@ void Server::send_handler(int epollfd, int socketfd)
 	if (active_connections.find(socketfd) == active_connections.end())
 		return ;
 	Connection &curr_connection = active_connections.at(socketfd);
-	print_req_resp(curr_connection);
+	// print_req_resp(curr_connection);
 	if (curr_connection.current_transaction == NULL)
 		return ;
 	curr_connection.update_last_activity();
@@ -401,6 +387,35 @@ void Server::close_inactive_connections(int epollfd)
 			it_end = active_connections.end();
 		}
 	}
+}
+
+bool Server::accept_connections(int epollfd, int socketfd)
+{
+	int listen_sock, conn_sock;
+
+	std::map<int, const VirtualServer *>::iterator it_listen_sock =	listening_sockfds.find(socketfd);
+	if (it_listen_sock != listening_sockfds.end())
+	{
+		while (true)
+		{
+			listen_sock = it_listen_sock->first;
+			conn_sock = accept_conn_socket(listen_sock);
+			if (conn_sock == -1)
+			{
+				if (errno == EAGAIN || errno == EWOULDBLOCK)
+					break;
+				logger(ERROR, "accept() failed: " + std::string(strerror(errno))
+					+ " | active_connections: "
+					+ ft_int_to_string(active_connections.size()), std::cerr);
+				break;
+			}
+			logger(INFO, "[New connection] socket " + ft_int_to_string(socketfd), std::cout);
+			add_socket_epoll(epollfd, conn_sock);
+			active_connections.insert(std::make_pair(conn_sock, Connection(conn_sock, it_listen_sock->second)));
+		}		
+		return (true);
+	}
+	return (false);
 }
 
 // Operator overload
