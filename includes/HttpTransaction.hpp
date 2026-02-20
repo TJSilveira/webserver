@@ -6,7 +6,7 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 12:18:58 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/19 17:48:22 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/20 13:59:48 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -82,9 +82,8 @@ public:
 	std::string build_autoindex_string(std::string &dir_path);
 
 	void mark_as_complete();
-	void assign_state(State s, char c);
-	void assign_state(State s, char c, int i, std::string str);
 	void assign_state(State s);
+	void assign_state(State s, char c, int i, std::string str);
 
 	HttpRequest request;
 	HttpResponse response;

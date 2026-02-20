@@ -6,7 +6,7 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/01/26 22:41:05 by tiago             #+#    #+#             */
-/*   Updated: 2026/02/17 13:37:24 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/20 14:14:46 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,7 +25,7 @@
 # include <sys/wait.h>
 # include <vector>
 
-# define MAX_EVENTS 128
+# define MAX_EVENTS 8192
 
 class Server
 {

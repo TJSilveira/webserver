@@ -6,7 +6,7 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 12:23:47 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/19 19:01:22 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/20 14:51:21 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -355,6 +355,7 @@ void Server::clean_connection(int epollfd, int socketfd)
 	remove_socket_epoll(epollfd, socketfd);
 	close(socketfd);
 	active_connections.erase(it);
+	logger(INFO, "Closed socket " + ft_int_to_string(socketfd), std::cout);
 }
 
 void Server::clean_all_connections(int epollfd)

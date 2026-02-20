@@ -6,7 +6,7 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 12:20:37 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/16 12:28:44 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/19 22:01:22 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -37,5 +37,8 @@ void	add_cgifd_epoll(int epollfd, int cgifd);
 void	remove_socket_epoll(int epollfd, int conn_sock);
 void	change_socket_epollout(int epollfd, int conn_sock);
 void	change_socket_epollin(int epollfd, int conn_sock);
+
+// utils
+void drain_socket(int curr_socket);
 
 #endif

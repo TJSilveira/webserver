@@ -6,7 +6,7 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 12:22:12 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/19 15:54:05 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/20 13:44:47 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -80,7 +80,10 @@ std::string HttpResponse::get_body()
 void HttpResponse::add_header(const std::string &key,
 								const std::string &value)
 {
-	_headers.insert(std::make_pair(key, value));
+	if (_headers.count(key) == 1)
+		_headers.at(key) = value;
+	else
+		_headers.insert(std::make_pair(key, value));
 }
 
 std::map<int, std::string> HttpResponse::initHttpStatusCodes()

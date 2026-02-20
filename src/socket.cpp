@@ -144,3 +144,17 @@ void	change_socket_epollin(int epollfd, int conn_sock)
 		exit(EXIT_FAILURE);
 	}
 }
+
+void drain_socket(int curr_socket)
+{
+	std::cout << "In the drain socket\n";
+	char buffer[4096];
+	while (true){
+		ssize_t size = recv(curr_socket, &buffer[0], 4096, 0);
+
+		if (size > 0)
+			continue;
+		else
+			break;
+	}
+}

@@ -6,7 +6,7 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 12:21:35 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/19 17:29:34 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/20 13:58:46 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -47,6 +47,13 @@ void Connection::insert_keep_alive_header()
 
 bool Connection::get_keep_alive()
 {
+	if (current_transaction->request.headers.count("Connection"))
+	{
+		if (current_transaction->request.headers.at("Connection") == "keep-alive")
+			keep_alive = true;
+		else
+			keep_alive = false;
+	}
 	return (keep_alive);
 }
 
@@ -81,30 +88,14 @@ int Connection::read_full_recv()
 	std::string buffer;
 	buffer.resize(BUFFER_SIZE);
 	bytes_received = recv(socket_fd, &buffer[0], BUFFER_SIZE, 0);
-	if (current_transaction->request.body.size() < 500)
-	{
-		printf("\n--Start of read cycle--\n");
-		printf("This is buffer: %s\n", buffer.c_str());
-	}
-
 	if (bytes_received > 0)
 	{
 		buffer.resize(bytes_received);
 		current_transaction->parse(buffer);
-		if (current_transaction->request.body.size() < 500)
-		{
-			printf("\n--End of read cycle--\n");
-		}
 		return (BUFFER_READ);
 	}
 	else if (bytes_received == 0) // Client closed write side OR there is nothing more to read
-	{
-		if (current_transaction->request.body.size() < 500)
-		{
-			printf("\n--End of read cycle--\n");
-		}
 		return (SOCKET_FINISHED_READ);
-	}
 	else
 		return (READ_ERROR);
 }
@@ -128,6 +119,6 @@ void Connection::send_response()
 	}
 	if (response._bytes_sent < response._response_buffer.size())
 		return ;
-	std::cout << "Finalized send\n";
+	logger(INFO, "Response Sent successfully", std::cout);
 	current_transaction->mark_as_complete();
 }
