@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpTransaction.cpp                                :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
+/*   By: amoiseik <amoiseik@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 12:22:21 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/20 13:59:37 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/20 17:37:36 by amoiseik         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -333,6 +333,7 @@ void HttpTransaction::process_request(int epollfd, int curr_socket)
 		if (location->return_redir.first != 0)
 		{
 			response.add_header("Location", location->return_redir.second);
+			response.set_head_method(request.method == "HEAD"); //added
 			response.build_response(location->return_redir.first);
 			change_socket_epollout(epollfd, curr_socket);
 			return ;
@@ -499,6 +500,7 @@ void HttpTransaction::build_response_found_resource(const Location *matched_loca
 			if (open_file(&index_path.at(0), html_file) == true)
 			{
 				response.set_body(file_to_string(html_file));
+				response.set_head_method(request.method == "HEAD"); //added
 				response.build_response(200);
 				return ;
 			}
@@ -524,6 +526,7 @@ void HttpTransaction::build_response_found_resource(const Location *matched_loca
 		if (open_file(&request.final_path.at(0), html_file) == true)
 		{
 			response.set_body(file_to_string(html_file));
+			response.set_head_method(request.method == "HEAD"); //added
 			response.build_response(200);
 		}
 		else
@@ -535,6 +538,7 @@ void HttpTransaction::build_error_response(int error_code)
 {
 	response.set_status(error_code);
 	response.set_body(generate_error_page(error_code));
+	response.set_head_method(request.method == "HEAD"); //added
 	response.serialize_response();
 	state = SENDING;
 }

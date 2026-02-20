@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpResponse.hpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
+/*   By: amoiseik <amoiseik@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 12:18:20 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/17 09:06:54 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/20 17:26:59 by amoiseik         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,6 +24,7 @@ private:
 	int _status_code;
 	std::map<std::string, std::string> _headers;
 	std::string _body;
+	bool _is_head_method; // added for fixing error with HEAD method
 
 	static std::map<int, std::string> initHttpStatusCodes();
 
@@ -36,6 +37,7 @@ public:
 	// Setters
 	void set_status(int code);
 	void set_body(const std::string &body);
+	void set_head_method(bool val); //added
 
 	// Getters
 	std::string get_body();
