@@ -6,7 +6,7 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/01/26 22:41:05 by tiago             #+#    #+#             */
-/*   Updated: 2026/02/20 14:59:56 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/22 18:36:27 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,6 +26,8 @@
 # include <vector>
 
 # define MAX_EVENTS 8192
+# define MAX_CONNECTIONS 1024
+# define TIMEOUT_SECONDS 30
 
 class Server
 {
@@ -39,6 +41,7 @@ public:
 	void clean_connection(int epollfd, int socketfd);
 	void clean_all_connections(int epollfd);
 	void close_inactive_connections(int epollfd);
+	void clean_cgi_fd(int epollfd, int cgifd);
 	bool accept_connections(int epollfd, int sockfd);
 
 	// Handlers
@@ -56,7 +59,7 @@ public:
 
 	// Listening sockets
 	std::map<int, const VirtualServer *> listening_sockfds;
-	std::map<int, Connection> active_connections; // cgi_fd -> socket_fd
+	std::map<int, Connection> active_connections; // socket_fd -> Connection
 	std::map<int, int> cgi_output_map;            // cgi_fd -> socket_fd
 
 	// Server Configs

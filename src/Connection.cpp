@@ -6,7 +6,7 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 12:21:35 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/20 15:55:31 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/22 18:57:18 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -124,6 +124,5 @@ void Connection::send_response()
 	}
 	if (response._bytes_sent < response._response_buffer.size())
 		return ;
-	logger(INFO, "Response Sent successfully", std::cout);
 	current_transaction->mark_as_complete();
 }

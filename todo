@@ -1,18 +1,14 @@
 Current:
-Improve logging -> Tiago
 Add Delete method implementation -> Tiago
 
 Next steps:
-Understand how and when to Chunk http responses
-Add try catch blocks for parsing and lexer in main
-Stress test the server
+Test with seige
+Test with other 42 webserv testing
 
 Maybe it is not necessary:
-Add limits to the number of sockets that are checked by epoll
 
 Nice to haves:
 Improve autoindex listing to make it prettier (we can include again the . and ..)
-
 
 DONE:
 Parsing the configuration file -> Tiago
@@ -34,3 +30,7 @@ Add CGI capabilities (pipe, execve,...) -> Andrei
 Change errno usage in the epoll recv and send -> Tiago
 Add signalhandling to gracefully shutdown  & overall error handling -> Tiago
 Add upload capabilities -> Tiago
+Improve logging -> Tiago
+Add try catch blocks for parsing and lexer in main -> Tiago
+Stress test the server -> Tiago and Andrei
+Add limits to the number of sockets that are checked by epoll ->Tiago

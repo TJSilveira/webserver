@@ -6,7 +6,7 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 12:18:58 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/20 13:59:48 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/21 15:33:46 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -64,7 +64,6 @@ public:
 		SENDING_ERROR,
 		COMPLETE
 	};
-
 
 	void parse(const std::string &raw);
 	void process_request(int epollfd, int curr_socket);

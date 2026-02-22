@@ -6,7 +6,7 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 12:22:40 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/19 17:41:56 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/22 18:08:50 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -47,10 +47,6 @@ Lexer::Lexer(std::string &config_str)
 {
 	char delim_array[] = {'{', '}', '\"', ';', '#'};
 	std::vector<char> delim(delim_array, delim_array + sizeof(delim_array) / sizeof(char));
-	for (size_t i = 0; i < delim.size(); i++)
-	{
-		std::cout << "This is delim ->" << delim[i] << "\n";
-	}
 	std::string temp_str;
 	for (int i = 0; config_str[i]; i++)
 	{
@@ -61,8 +57,6 @@ Lexer::Lexer(std::string &config_str)
 			{
 				i++;
 			}
-			// if(config_str[i] && config_str[i] == '\n')
-			// 	_token_list.push_back(token("\n", Whitespace));
 		}
 		else if (config_str[i] == '{')
 			_token_list.push_back(token("{", OpenBrk));

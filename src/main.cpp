@@ -6,7 +6,7 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/01/14 17:29:14 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/19 17:44:03 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/22 17:59:40 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -44,18 +44,26 @@ int	main(int argc, char *argv[])
 	if (argc != 2)
 	{
 		std::cerr << "Error: must pass as argument one configuration file\n";
-		return (0);
+		return (EXIT_SUCCESS);
 	}
 	open_and_validate_file(argv[1], conf_file);
 	conf_str = file_to_string(conf_file);
 	conf_file.close();
-	Lexer lexer(conf_str);
-	Parser parser(lexer);
-	signal(SIGINT, sig_handler);
-	signal(SIGTERM, sig_handler);
-	Server main_server(parser.server);
-	std::cout << main_server;
-	main_server.init();
-	main_server.run_server();
-	return (0);
+	try
+	{
+		Lexer lexer(conf_str);
+		Parser parser(lexer);
+		signal(SIGINT, sig_handler);
+		signal(SIGTERM, sig_handler);
+		Server main_server(parser.server);
+		std::cout << main_server;
+		main_server.init();
+		main_server.run_server();
+	}
+	catch(const std::exception& e)
+	{
+		std::cerr << e.what() << '\n';
+		return (EXIT_FAILURE);
+	}
+	return (EXIT_SUCCESS);
 }
