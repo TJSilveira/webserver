@@ -6,7 +6,7 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/01/26 22:41:05 by tiago             #+#    #+#             */
-/*   Updated: 2026/02/22 18:36:27 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/23 18:03:30 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,7 +27,7 @@
 
 # define MAX_EVENTS 8192
 # define MAX_CONNECTIONS 1024
-# define TIMEOUT_SECONDS 30
+# define TIMEOUT_SECONDS 600
 
 class Server
 {

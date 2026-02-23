@@ -6,7 +6,7 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 12:23:47 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/22 18:56:28 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/23 19:22:49 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -266,14 +266,16 @@ void Server::cgi_read_handler(int epollfd, int cgifd)
 	}
 	std::cout << "input_doc_path: " << conn.current_transaction->cgi_info.input_doc_path.c_str() << std::endl;
 	clean_cgi_fd(epollfd, cgifd);
-	waitpid(conn.current_transaction->cgi_info.pid, &status, WNOHANG);
-	if (WEXITSTATUS(status) == 1)
+	if (waitpid(conn.current_transaction->cgi_info.pid, &status, WNOHANG) > 0)
 	{
-		conn.current_transaction->build_error_response(500);
-		change_socket_epollout(epollfd, client_fd);
-		return;
+		if (WIFEXITED(status) && WEXITSTATUS(status) == 1)
+		{
+			conn.current_transaction->build_error_response(500);
+			change_socket_epollout(epollfd, client_fd);
+			return;
+		}
 	}
-	
+
 	// Requirement to pass the 42 tester;
 	if (conn.current_transaction->cgi_info.buffer.length() > 8 && conn.current_transaction->cgi_info.buffer.substr(0, 8) == "Status: ")
 	{
@@ -284,6 +286,7 @@ void Server::cgi_read_handler(int epollfd, int cgifd)
 	}
 	else
 		conn.current_transaction->response._response_buffer = conn.current_transaction->cgi_info.buffer;
+	conn.set_keep_alive(false);
 	conn.current_transaction->state = HttpTransaction::SENDING;
 	change_socket_epollout(epollfd, client_fd);
 }

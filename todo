@@ -1,5 +1,8 @@
 Current:
 Add Delete method implementation -> Tiago
+Improve config client_body_max -> Tiago
+Make sure script errors give back the correct error -> Tiago
+Ensure that every read, write, recv, send has an if statement to close the connection if there is an error -> Tiago
 
 Next steps:
 Test with seige

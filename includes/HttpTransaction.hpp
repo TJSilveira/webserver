@@ -6,7 +6,7 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 12:18:58 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/21 15:33:46 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/23 18:48:47 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -49,12 +49,12 @@ public:
 		PARSING_HEADER_DONE,
 		PARSING_HEADER_FINAL_CR,
 		PARSING_BODY,
-		PARSING_CHUNCKED_SIZE,
-		PARSING_CHUNCKED_SIZE_CR,
-		PARSING_CHUNCKED_BODY,
-		PARSING_CHUNCKED_CR,
-		PARSING_CHUNCKED_DONE,
-		PARSING_CHUNCKED_FINAL_CR,
+		PARSING_CHUNKED_SIZE,
+		PARSING_CHUNKED_SIZE_CR,
+		PARSING_CHUNKED_BODY,
+		PARSING_CHUNKED_CR,
+		PARSING_CHUNKED_DONE,
+		PARSING_CHUNKED_FINAL_CR,
 		PARSING_ERROR,
 		ERROR_EXCEEDS_LIMIT,
 		ERROR_METHOD_NOT_ALLOWED,
@@ -69,14 +69,16 @@ public:
 	void process_request(int epollfd, int curr_socket);
 	void prepare_response(int epollfd, int curr_socket);
 	void prepare_response_get(struct stat &s);
-	void prepare_response_post(int curr_socket, struct stat &s);
-	void prepare_response_post_cgi(int curr_socket);
+	void prepare_response_post(int curr_socket);
+	void prepare_response_delete(struct stat &s);
+	void prepare_response_cgi(int curr_socket);
 	void build_error_response(int error_code);
+	void build_bodyless_response(int status);
 	std::string build_cgi_path();
 	const Location *find_location();
 	std::string generate_error_page(int error_code);
 
-	void build_response_found_resource(const Location *matched_location, struct stat &s);
+	void build_response_get_resource(const Location *matched_location, struct stat &s);
 
 	std::string build_autoindex_string(std::string &dir_path);
 

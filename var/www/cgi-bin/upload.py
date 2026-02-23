@@ -8,7 +8,7 @@ def main():
     # Get CGI environment variables
     request_method = os.environ.get('REQUEST_METHOD', '')
     server_protocol = os.environ.get('SERVER_PROTOCOL', 'HTTP/1.1')
-    
+
     # Validate request method
     if request_method != 'POST':
         error_msg = "Error: Only POST method is allowed"
@@ -19,10 +19,10 @@ def main():
         print(error_msg)
         sys.stdout.flush()
         return
-    
+
     # Define upload directory
     upload_dir = "./var/www/uploads"
-    
+
     try:
         os.makedirs(upload_dir, exist_ok=True)
     except Exception as e:
@@ -34,7 +34,7 @@ def main():
         print(error_msg)
         sys.stdout.flush()
         return
-    
+
     # Parse POST data
     try:
         form = cgi.FieldStorage()
@@ -47,18 +47,18 @@ def main():
         print(error_msg)
         sys.stdout.flush()
         return
-    
+
     # Find the first file field (accept any field name)
     fileitem = None
     field_name = None
-    
+
     for key in form.keys():
         item = form[key]
         if hasattr(item, 'file') and item.file:
             fileitem = item
             field_name = key
             break
-    
+
     if fileitem is None:
         error_msg = "Error: No file uploaded in request"
         print(f"{server_protocol} 400 Bad Request")
@@ -68,16 +68,16 @@ def main():
         print(error_msg)
         sys.stdout.flush()
         return
-    
+
     # Get filename
     if fileitem.filename:
         filename = os.path.basename(fileitem.filename)
     else:
         import time
         filename = f"upload_{int(time.time())}.dat"
-    
+
     filepath = os.path.join(upload_dir, filename)
-    
+
     # Write the file
     try:
         file_size = 0
