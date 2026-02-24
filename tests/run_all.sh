@@ -27,5 +27,7 @@ run_test_step "test_invalid_configs.sh" "Basic Invalid Configs"
 
 run_test_step "test_duplicates.sh" "Duplicate Locations"
 
+run_test_step "test_invalid_configs" "Duplicate directive"
+
 echo -e "${GREEN}All test sequences completed!${NC}"
 echo "========================================"
