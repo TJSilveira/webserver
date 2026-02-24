@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
+/*   By: amoiseik <amoiseik@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 12:23:47 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/20 14:51:21 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/24 12:44:23 by amoiseik         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -73,7 +73,14 @@ Server::Server(t_server &server_config)
 		}
 		else if (curr_directive.name == "client_max_body_size")
 		{
-			this->client_max_body_size = atoi(curr_directive.args.at(0).c_str());
+			std::string arg = curr_directive.args.at(0);
+			if (arg.empty() || arg.find_first_not_of("0123456789") != std::string::npos)
+			{
+				throw ConfigError("client_max_body_size must be a non-negative integer", arg);
+			}
+			this->client_max_body_size = static_cast<size_t>(atol(arg.c_str()));
+			
+			// this->client_max_body_size = atoi(curr_directive.args.at(0).c_str()); //old version, delete
 		}
 		else if (curr_directive.name == "index")
 		{

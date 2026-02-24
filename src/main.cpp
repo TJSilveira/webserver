@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   main.cpp                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
+/*   By: amoiseik <amoiseik@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/01/14 17:29:14 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/19 17:44:03 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/24 12:57:37 by amoiseik         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -46,16 +46,38 @@ int	main(int argc, char *argv[])
 		std::cerr << "Error: must pass as argument one configuration file\n";
 		return (0);
 	}
-	open_and_validate_file(argv[1], conf_file);
-	conf_str = file_to_string(conf_file);
-	conf_file.close();
-	Lexer lexer(conf_str);
-	Parser parser(lexer);
-	signal(SIGINT, sig_handler);
-	signal(SIGTERM, sig_handler);
-	Server main_server(parser.server);
-	std::cout << main_server;
-	main_server.init();
-	main_server.run_server();
+	try 
+	{
+		std::ifstream conf_file;
+		std::string conf_str;
+
+		open_and_validate_file(argv[1], conf_file);
+		conf_str = file_to_string(conf_file);
+		conf_file.close();
+
+		Lexer lexer(conf_str);
+		Parser parser(lexer);
+
+		signal(SIGINT, sig_handler);
+		signal(SIGTERM, sig_handler);
+
+		Server main_server(parser.server);
+		std::cout << main_server;
+
+		main_server.init();
+		main_server.run_server();
+	}
+	catch (const std::exception &e) 
+	{
+		std::cerr << "\033[1;31mFatal Error:\033[0m " << e.what() << std::endl;
+		return (1); 
+	}
+	catch (...) 
+	{
+		// In case of unknown errors
+		std::cerr << "An unknown fatal error occurred." << std::endl;
+		return (1);
+	}
+
 	return (0);
 }
