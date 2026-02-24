@@ -6,7 +6,7 @@
 /*   By: amoiseik <amoiseik@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 12:23:47 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/24 13:20:25 by amoiseik         ###   ########.fr       */
+/*   Updated: 2026/02/24 15:47:31 by amoiseik         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,9 +16,6 @@
 #include <iostream>
 #include <ostream>
 #include <vector>
-
-
-#define TIMEOUT_SECONDS 20
 
 std::string directives_array[] = {"listen",
 									"server_name",
@@ -131,7 +128,7 @@ void Server::init()
 			fd = create_listening_socket(port, "0.0.0.0");
 			listening_sockfds.insert(std::make_pair(fd,	&virtual_servers.at(i)));
 			bound_ports.insert(port);
-			logger(INFO, "Successfully bound port: " + ft_int_to_string(port) + " with fd: " + ft_int_to_string(fd), std::cout);
+			logger(INFO, "Successfully bounded port '" + ft_int_to_string(port) + "' with fd '" + ft_int_to_string(fd) + "'", std::cout);
 		}
 		else
 		{
@@ -145,7 +142,7 @@ void Server::init()
 void Server::run_server()
 {
 	struct epoll_event ev, events[MAX_EVENTS];
-	int listen_sock, conn_sock, nfds, epollfd;
+	int socketfd, nfds, epollfd;
 	epollfd = epoll_create1(0);
 	if (epollfd == -1)
 	{
@@ -167,7 +164,7 @@ void Server::run_server()
 	}
 	while (!g_stop)
 	{
-		nfds = epoll_wait(epollfd, events, MAX_EVENTS, 100);
+		nfds = epoll_wait(epollfd, events, MAX_EVENTS, 1000);
 		if (nfds == -1)
 		{
 			if (g_stop == 1)
@@ -177,36 +174,24 @@ void Server::run_server()
 		}
 		for (int i = 0; i < nfds; ++i)
 		{
-			std::map<int, int>::iterator it_cgi =cgi_output_map.find(events[i].data.fd);
-			std::map<int, const VirtualServer *>::iterator it_listen_sock =	listening_sockfds.find(events[i].data.fd);
-			if (it_listen_sock != listening_sockfds.end())
-			{
-				listen_sock = it_listen_sock->first;
-				conn_sock = accept_conn_socket(listen_sock);
-				if (conn_sock != -1)
-				{
-					add_socket_epoll(epollfd, conn_sock);
-					active_connections.insert(std::make_pair(
-						conn_sock, Connection(conn_sock,
-								it_listen_sock->second)));
-				}
-			}
+			socketfd = events[i].data.fd;
+			std::map<int, int>::iterator it_cgi = cgi_output_map.find(socketfd);
+			if (accept_connections(epollfd, socketfd))
+				continue;
 			else if (it_cgi != cgi_output_map.end())
-			{
 				cgi_read_handler(epollfd, it_cgi->first);
-			}
 			else
 			{
-				conn_sock = events[i].data.fd;
-				if (events[i].events & (EPOLLERR | EPOLLHUP | EPOLLRDHUP))
+				socketfd = events[i].data.fd;
+				if (events[i].events & (EPOLLERR | EPOLLHUP))
 				{
-					clean_connection(epollfd, conn_sock);
+					clean_connection(epollfd, socketfd);
 					continue ;
 				}
 				if (events[i].events & EPOLLIN)
-					read_handler(epollfd, conn_sock);
+					read_handler(epollfd, socketfd);
 				if (events[i].events & EPOLLOUT)
-					send_handler(epollfd, conn_sock);
+					send_handler(epollfd, socketfd);
 			}
 		}
 		close_inactive_connections(epollfd);
@@ -221,33 +206,39 @@ void Server::read_handler(int epollfd, int socketfd)
 	if (active_connections.find(socketfd) == active_connections.end())
 		return ;
 	Connection &curr_connection = active_connections.at(socketfd);
+
 	// instanciate current transaction if does not exist yet
 	if (curr_connection.current_transaction == NULL)
 		curr_connection.current_transaction =
 			new HttpTransaction(curr_connection.server_config);
 	status = curr_connection.read_full_recv();
+
 	curr_connection.update_last_activity();
 	if (status == READ_ERROR)
 	{
+		logger(ERROR, "READ_ERROR fd=" + ft_int_to_string(socketfd), std::cerr);
 		clean_connection(epollfd, socketfd);
 		return ;
 	}
 	if (status == SOCKET_FINISHED_READ)
 	{
-		// I think this is wrong. We need to find a way to send the information before closing.
-		logger(INFO, "Client closed connection (EOF)", std::cout);
-		clean_connection(epollfd, socketfd);
-		return;
+		curr_connection.set_keep_alive(false);
+		if (curr_connection.current_transaction->state < HttpTransaction::ERROR_PARSING)
+		{
+			logger(INFO, "Client closed connection early. Cleaning up fd=" + ft_int_to_string(socketfd), std::cout);
+			clean_connection(epollfd, socketfd);
+			return;
+		}
 	}
 
-	if (curr_connection.current_transaction->state < HttpTransaction::PARSING_ERROR)
+	if (curr_connection.current_transaction->state < HttpTransaction::ERROR_PARSING)
 		return;
 	
 	curr_connection.insert_keep_alive_header();
 	curr_connection.current_transaction->process_request(epollfd, socketfd);
-	std::cout << "State of the transaction after the process_request: " <<curr_connection.current_transaction->state <<std::endl;
+	// std::cout << "State of the transaction after the process_request: " <<curr_connection.current_transaction->state <<std::endl;
 	if (curr_connection.current_transaction->state ==
-		HttpTransaction::WAITING_CGI) // The problem is that the program is not entering this part of the code
+		HttpTransaction::WAITING_CGI)
 	{
 		cgi_output_map.insert(
 			std::make_pair(curr_connection.current_transaction->cgi_info.pipe_fd,
@@ -259,11 +250,18 @@ void Server::read_handler(int epollfd, int socketfd)
 void Server::cgi_read_handler(int epollfd, int cgifd)
 {
 	int		status;
-	char	buf[4096];
+	char	buf[65536];
 	int		client_fd;
 	ssize_t	n;
 
 	client_fd = cgi_output_map.at(cgifd);
+
+	if (active_connections.find(client_fd) == active_connections.end())
+	{
+		clean_cgi_fd(epollfd, cgifd);
+		return;
+	}
+	
 	Connection &conn = active_connections.at(client_fd);
 	n = read(cgifd, buf, sizeof(buf));
 	if (n > 0)
@@ -271,17 +269,18 @@ void Server::cgi_read_handler(int epollfd, int cgifd)
 		conn.current_transaction->cgi_info.buffer.append(buf, n);
 		return ;
 	}
-	epoll_ctl(epollfd, EPOLL_CTL_DEL, cgifd, NULL);
-	std::cout << "input_doc_path: " << conn.current_transaction->cgi_info.input_doc_path.c_str() << std::endl;
-	close(cgifd);
-	cgi_output_map.erase(cgifd);
-	waitpid(cgifd, &status, WNOHANG);
-	if (WEXITSTATUS(status) == 1)
+	clean_cgi_fd(epollfd, cgifd);
+	if (waitpid(conn.current_transaction->cgi_info.pid, &status, WNOHANG) > 0)
 	{
-		conn.current_transaction->build_error_response(500);
-		change_socket_epollout(epollfd, client_fd);
+		if (WIFEXITED(status) && WEXITSTATUS(status) == 1)
+		{
+			conn.current_transaction->build_error_response(500);
+			change_socket_epollout(epollfd, client_fd);
+			return;
+		}
 	}
-	
+
+	// Requirement to pass the 42 tester;
 	if (conn.current_transaction->cgi_info.buffer.length() > 8 && conn.current_transaction->cgi_info.buffer.substr(0, 8) == "Status: ")
 	{
 		conn.current_transaction->response._response_buffer = "HTTP/1.1 ";
@@ -291,25 +290,8 @@ void Server::cgi_read_handler(int epollfd, int cgifd)
 	}
 	else
 		conn.current_transaction->response._response_buffer = conn.current_transaction->cgi_info.buffer;
+	conn.set_keep_alive(false);
 	conn.current_transaction->state = HttpTransaction::SENDING;
-
-	// /* debug */
-	// struct timeval tv;
-	// gettimeofday(&tv, NULL);
-	// std::string temp_path = "./var/www/temp/webserv_response_" + ft_int_to_string(tv.tv_sec) + ft_int_to_string(tv.tv_usec);
-
-	// int response_fd = open(temp_path.c_str(), O_CREAT | O_WRONLY | O_TRUNC, 0600);
-
-	// // write request body into file
-	// ssize_t written_size = write(response_fd, conn.current_transaction->response._response_buffer.data(), 1000);
-	// if (written_size != 1000)
-	// {
-	// 	std::cout << "Problem in second if\n";
-	// 	unlink(temp_path.c_str());
-	// }
-	// close(response_fd);
-	// /* end of debug*/
-
 	change_socket_epollout(epollfd, client_fd);
 }
 
@@ -318,21 +300,19 @@ void Server::send_handler(int epollfd, int socketfd)
 	if (active_connections.find(socketfd) == active_connections.end())
 		return ;
 	Connection &curr_connection = active_connections.at(socketfd);
-	print_req_resp(curr_connection);
 	if (curr_connection.current_transaction == NULL)
 		return ;
 	curr_connection.update_last_activity();
 	curr_connection.send_response();
 	if (curr_connection.current_transaction->state ==
 		HttpTransaction::COMPLETE)
-	{	
+	{
 		if (curr_connection.get_keep_alive() == false)
 		{
 			clean_connection(epollfd, socketfd);
 			return ;
 		}
-		if (!curr_connection.current_transaction->cgi_info.input_doc_path.empty())
-			unlink(curr_connection.current_transaction->cgi_info.input_doc_path.c_str());
+		curr_connection.current_transaction->request.clean_body_file();
 		delete curr_connection.current_transaction;
 		curr_connection.current_transaction = NULL;
 		change_socket_epollin(epollfd, socketfd);
@@ -340,8 +320,7 @@ void Server::send_handler(int epollfd, int socketfd)
 	else if (curr_connection.current_transaction->state ==
 		HttpTransaction::SENDING_ERROR)
 	{
-		if (!curr_connection.current_transaction->cgi_info.input_doc_path.empty())
-			unlink(curr_connection.current_transaction->cgi_info.input_doc_path.c_str());
+		curr_connection.current_transaction->request.clean_body_file();
 		clean_connection(epollfd, socketfd);
 		return ;
 	}
@@ -349,6 +328,25 @@ void Server::send_handler(int epollfd, int socketfd)
 
 void Server::clean_connection(int epollfd, int socketfd)
 {
+	// Clean cgi pipe fds belonging to the connection
+	std::map<int,int>::iterator it_cgi = cgi_output_map.begin();
+
+	for (; it_cgi != cgi_output_map.end();)
+	{
+		if (it_cgi->second == socketfd)
+		{
+			std::map<int,int>::iterator to_erase = it_cgi;
+			++it_cgi;
+			logger(INFO, "Closed cgi_pipe with fd " + ft_int_to_string(to_erase->first), std::cout);
+			epoll_ctl(epollfd, EPOLL_CTL_DEL, to_erase->first, NULL);
+			close(to_erase->first);
+			cgi_output_map.erase(to_erase++);
+		}
+		else
+			++it_cgi;
+	}
+
+	// Clean socket connections
 	std::map<int, Connection>::iterator it = active_connections.find(socketfd);
 	if (it == active_connections.end())
 		return ;
@@ -358,9 +356,10 @@ void Server::clean_connection(int epollfd, int socketfd)
 		it->second.current_transaction = NULL;
 	}
 	remove_socket_epoll(epollfd, socketfd);
+	drain_socket(socketfd);
 	close(socketfd);
 	active_connections.erase(it);
-	logger(INFO, "Closed socket " + ft_int_to_string(socketfd), std::cout);
+	logger(CLOSE_SOCKET, "[Closed Connection]\t\t socket with fd " + ft_int_to_string(socketfd), std::cout);
 }
 
 void Server::clean_all_connections(int epollfd)
@@ -406,6 +405,50 @@ void Server::close_inactive_connections(int epollfd)
 			it_end = active_connections.end();
 		}
 	}
+}
+
+void Server::clean_cgi_fd(int epollfd, int cgifd)
+{
+	epoll_ctl(epollfd, EPOLL_CTL_DEL, cgifd, NULL);
+	close(cgifd);
+	cgi_output_map.erase(cgifd);
+}
+
+bool Server::accept_connections(int epollfd, int socketfd)
+{
+	int listen_sock, conn_sock;
+
+	std::map<int, const VirtualServer *>::iterator it_listen_sock =	listening_sockfds.find(socketfd);
+	if (it_listen_sock != listening_sockfds.end())
+	{
+		while (true)
+		{
+			listen_sock = it_listen_sock->first;
+			conn_sock = accept_conn_socket(listen_sock);
+			if (conn_sock == -1)
+			{
+				if (errno == EAGAIN || errno == EWOULDBLOCK)
+					break;
+				logger(ERROR, "accept() failed: " + std::string(strerror(errno))
+					+ " | active_connections: "
+					+ ft_int_to_string(active_connections.size()), std::cerr);
+				break;
+			}
+
+			if (active_connections.size() >= MAX_CONNECTIONS)
+			{
+				logger(WARNING, "Max connections reached. Dropping new connection.", std::cerr);
+				close(conn_sock);
+				continue;
+			}
+
+			logger(OPEN_SOCKET, "[New connection]\t\tsocket with fd " + ft_int_to_string(conn_sock) + " from listening socket " + ft_int_to_string(socketfd), std::cout);
+			add_socket_epoll(epollfd, conn_sock);
+			active_connections.insert(std::make_pair(conn_sock, Connection(conn_sock, it_listen_sock->second)));
+		}
+		return (true);
+	}
+	return (false);
 }
 
 // Operator overload

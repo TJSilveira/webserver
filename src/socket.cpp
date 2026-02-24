@@ -50,10 +50,7 @@ int	accept_conn_socket(int listen_sock)
 	sin_size = sizeof(addr);
 	sockfd = accept(listen_sock, (struct sockaddr *)&addr, &sin_size);
 	if (sockfd == -1)
-	{
-		perror("accept");
 		return (-1);
-	}
 	if (setnonblocking(sockfd) == -1)
 		return (-1);
 	return (sockfd);
@@ -147,7 +144,6 @@ void	change_socket_epollin(int epollfd, int conn_sock)
 
 void drain_socket(int curr_socket)
 {
-	std::cout << "In the drain socket\n";
 	char buffer[4096];
 	while (true){
 		ssize_t size = recv(curr_socket, &buffer[0], 4096, 0);

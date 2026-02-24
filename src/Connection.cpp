@@ -6,7 +6,7 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 12:21:35 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/20 13:58:46 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/24 11:30:11 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,10 +21,10 @@ Connection::Connection(int socket_fd, const VirtualServer *server_config)
 
 Connection::~Connection()
 {
-		delete current_transaction;
-
 	if (current_transaction)
 	{
+		delete current_transaction;
+		current_transaction = NULL;		
 	}
 }
 
@@ -55,6 +55,11 @@ bool Connection::get_keep_alive()
 			keep_alive = false;
 	}
 	return (keep_alive);
+}
+
+void Connection::set_keep_alive(bool status)
+{
+	this->keep_alive = status;
 }
 
 void Connection::update_last_activity()
@@ -91,7 +96,7 @@ int Connection::read_full_recv()
 	if (bytes_received > 0)
 	{
 		buffer.resize(bytes_received);
-		current_transaction->parse(buffer);
+		current_transaction->parse(buffer, socket_fd);
 		return (BUFFER_READ);
 	}
 	else if (bytes_received == 0) // Client closed write side OR there is nothing more to read
@@ -119,6 +124,5 @@ void Connection::send_response()
 	}
 	if (response._bytes_sent < response._response_buffer.size())
 		return ;
-	logger(INFO, "Response Sent successfully", std::cout);
 	current_transaction->mark_as_complete();
 }

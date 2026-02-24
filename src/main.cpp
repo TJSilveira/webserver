@@ -6,7 +6,7 @@
 /*   By: amoiseik <amoiseik@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/01/14 17:29:14 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/24 12:57:37 by amoiseik         ###   ########.fr       */
+/*   Updated: 2026/02/24 15:46:48 by amoiseik         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -44,40 +44,26 @@ int	main(int argc, char *argv[])
 	if (argc != 2)
 	{
 		std::cerr << "Error: must pass as argument one configuration file\n";
-		return (0);
+		return (EXIT_SUCCESS);
 	}
-	try 
+	open_and_validate_file(argv[1], conf_file);
+	conf_str = file_to_string(conf_file);
+	conf_file.close();
+	try
 	{
-		std::ifstream conf_file;
-		std::string conf_str;
-
-		open_and_validate_file(argv[1], conf_file);
-		conf_str = file_to_string(conf_file);
-		conf_file.close();
-
 		Lexer lexer(conf_str);
 		Parser parser(lexer);
-
 		signal(SIGINT, sig_handler);
 		signal(SIGTERM, sig_handler);
-
 		Server main_server(parser.server);
 		std::cout << main_server;
-
 		main_server.init();
 		main_server.run_server();
 	}
-	catch (const std::exception &e) 
+	catch(const std::exception& e)
 	{
-		std::cerr << "\033[1;31mFatal Error:\033[0m " << e.what() << std::endl;
-		return (1); 
+		std::cerr << e.what() << '\n';
+		return (EXIT_FAILURE);
 	}
-	catch (...) 
-	{
-		// In case of unknown errors
-		std::cerr << "An unknown fatal error occurred." << std::endl;
-		return (1);
-	}
-
-	return (0);
+	return (EXIT_SUCCESS);
 }

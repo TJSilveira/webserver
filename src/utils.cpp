@@ -6,7 +6,7 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/01/14 17:29:14 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/19 21:58:21 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/24 14:29:30 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -94,11 +94,16 @@ std::string	ft_to_upper(std::string orginal)
 	return(res); 
 }
 
-void	logger(int status, std::string msg, std::ostream &os)
+void	logger(t_logger_enum status, std::string msg, std::ostream &os)
 {
 	std::string red = "\033[31m";
 	std::string green = "\033[32m";
+	std::string black   = "\033[30m";
+	std::string yellow  = "\033[33m";
+	std::string blue    = "\033[34m";
+	std::string cyan    = "\033[36m";
 	std::string reset = "\033[0m";
+	
 	if (status == ERROR)
 	{
 		os << red + msg + reset << std::endl;
@@ -106,5 +111,21 @@ void	logger(int status, std::string msg, std::ostream &os)
 	else if (status == INFO)
 	{
 		os << green + msg + reset << std::endl;
+	}
+	else if (status == OPEN_SOCKET)
+	{
+		os << blue + msg + reset << std::endl;
+	}
+	else if (status == CLOSE_SOCKET)
+	{
+		os << cyan + msg + reset << std::endl;
+	}
+	else if (status == WARNING)
+	{
+		os << yellow + msg + reset << std::endl;
+	}
+	else
+	{
+		os << black + msg + reset << std::endl;
 	}
 }

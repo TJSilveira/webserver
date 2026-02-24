@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpResponse.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: amoiseik <amoiseik@student.42.fr>          +#+  +:+       +#+        */
+/*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 12:22:12 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/20 17:39:33 by amoiseik         ###   ########.fr       */
+/*   Updated: 2026/02/23 11:59:53 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,7 +14,7 @@
 #include "../includes/utils.hpp"
 
 HttpResponse::HttpResponse()
-	: _version("HTTP/1.1"), _is_head_method(false), _bytes_sent(0) //added _is_head_method inicialisation
+	: _version("HTTP/1.1"), _is_head_method(false), _bytes_sent(0)
 {
 }
 
@@ -38,7 +38,6 @@ void HttpResponse::serialize_response()
 	_response_buffer += "\r\n";
 	_response_buffer += serialize_headers();
 	_response_buffer += "\r\n";
-	//added next condition, before was just string without condition
 	if (!_is_head_method)
 		_response_buffer += this->_body;
 }
@@ -74,7 +73,6 @@ void HttpResponse::set_body(const std::string &body)
 	this->_body = body;
 }
 
-//added seter for is_head_method
 void HttpResponse::set_head_method(bool val)
 {
 	_is_head_method = val;

@@ -6,7 +6,7 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 12:20:37 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/19 22:01:22 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/21 14:35:04 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,7 +25,7 @@
 # include <sys/types.h>
 # include <unistd.h>
 
-# define BACKLOG 10
+# define BACKLOG 512
 
 int		create_listening_socket(int port, const char *ip);
 int		accept_conn_socket(int listen_sock);
