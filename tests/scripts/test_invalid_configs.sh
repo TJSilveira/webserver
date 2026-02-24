@@ -1,25 +1,40 @@
 #!/bin/bash
 
-# Colors
+# Output color
 GREEN='\033[0;32m'
 RED='\033[0;31m'
-NC='\033[0m' # No Color
+YELLOW='\033[1;33m'
+NC='\033[0m'
 
-echo "Running Configuration Validation Tests..."
+# Go to project root
+cd "$(dirname "$0")/../.."
 
-# Array with config's names
-configs=("invalid_max_body.conf" "invalid_listen.conf")
+echo -e "${YELLOW}Starting Invalid Configuration Tests...${NC}"
 
-for conf in "${configs[@]}"
-do
-    echo -n "Testing $conf: "
-    # Lainch server
-    output=$(./webserv ./tests/config_validation/$conf 2>&1)
-    
-    # Check if is in output "Error" or "ConfigError"
-    if echo "$output" | grep -iq "Error"; then
-        echo -e "${GREEN}PASS${NC} (Caught invalid config)"
-    else
-        echo -e "${RED}FAIL${NC} (Server accepted invalid config!)"
-    fi
+# Check for binary files
+if [ ! -f "./webserv" ]; then
+	echo -e "${RED}Error: webserv binary not found! Run make first.${NC}"
+	exit 1
+fi
+
+# Tests count
+PASSED=0
+FAILED=0
+
+for file in config/invalid/*.conf; do
+	echo -n "Testing $(basename "$file"): "
+	
+	# Start server, catch stderr и stdout
+	output=$(./webserv "$file" 2>&1)
+	
+	if [[ $? -ne 0 ]] || echo "$output" | grep -iq "Error"; then
+		echo -e "${GREEN}PASS${NC} (Corrected rejected)"
+		((PASSED++))
+	else
+		echo -e "${RED}FAIL${NC} (Server accepted invalid config!)"
+		((FAILED++))
+	fi
 done
+
+echo "---------------------------------------"
+echo -e "Summary: ${GREEN}$PASSED passed${NC}, ${RED}$FAILED failed${NC}"

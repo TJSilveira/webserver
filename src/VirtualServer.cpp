@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   VirtualServer.cpp                                  :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
+/*   By: amoiseik <amoiseik@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 12:23:58 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/16 13:08:11 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/24 13:24:59 by amoiseik         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -47,6 +47,8 @@ VirtualServer::VirtualServer(const t_virtual_server &vir_serv_config,
 									curr_directive.name);
 			int valid_int =
 				extract_and_validate_str_to_int(curr_directive.args.at(0));
+			if (valid_int < 1 || valid_int > 65535)
+				throw ConfigError("port out of range [1-65535]", curr_directive.args.at(0));
 			this->listen = valid_int;
 		}
 		else if (curr_directive.name == "error_page")
@@ -61,7 +63,10 @@ VirtualServer::VirtualServer(const t_virtual_server &vir_serv_config,
 		}
 		else if (curr_directive.name == "client_max_body_size")
 		{
-			this->client_max_body_size = atoi(curr_directive.args.at(0).c_str());
+			std::string arg = curr_directive.args.at(0);
+			if (arg.find_first_not_of("0123456789") != std::string::npos)
+				throw ConfigError("client_max_body_size must be a positive integer", arg);
+			this->client_max_body_size = static_cast<size_t>(atol(arg.c_str()));
 		}
 		else if (curr_directive.name == "index")
 		{
