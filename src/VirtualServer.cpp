@@ -6,7 +6,7 @@
 /*   By: amoiseik <amoiseik@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 12:23:58 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/24 13:24:59 by amoiseik         ###   ########.fr       */
+/*   Updated: 2026/02/24 13:55:33 by amoiseik         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -99,6 +99,16 @@ VirtualServer::VirtualServer(const t_virtual_server &vir_serv_config,
 	}
 	for (size_t i = 0; i < vir_serv_config.locations.size(); i++)
 	{
+		std::string new_path = vir_serv_config.locations.at(i).path;
+
+		// Check if new_path already in our Location vector
+		for (size_t j = 0; j < this->locations.size(); j++)
+		{
+			if (this->locations.at(j).path == new_path)
+			{
+				throw ConfigError("duplicate location path found", new_path);
+			}
+		}
 		this->locations.push_back(Location(vir_serv_config.locations.at(i),
 					*this));
 	}

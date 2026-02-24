@@ -1,24 +1,31 @@
 #!/bin/bash
 
-# Color
 GREEN='\033[0;32m'
+RED='\033[0;31m'
+YELLOW='\033[1;33m'
 NC='\033[0m'
 
-# Way to the folder with scripts
 SCRIPT_DIR="$(dirname "$0")/scripts"
 
 echo "========================================"
-echo "      WEBSERV FULL TEST SUITE"
+echo -e "${YELLOW}      WEBSERV FULL TEST SUITE${NC}"
 echo "========================================"
 
-# Запуск теста конфигов
-if [ -f "$SCRIPT_DIR/test_invalid_configs.sh" ]; then
-    bash "$SCRIPT_DIR/test_invalid_configs.sh"
-else
-    echo "Error: test_invalid_configs.sh not found!"
-fi
+run_test_step() {
+    local script_name=$1
+    local description=$2
 
-# Сюда в будущем добавишь: bash "$SCRIPT_DIR/test_cgi.sh"
+    if [ -f "$SCRIPT_DIR/$script_name" ]; then
+        bash "$SCRIPT_DIR/$script_name"
+        echo "----------------------------------------"
+    else
+        echo -e "${RED}Error: $script_name not found in $SCRIPT_DIR!${NC}"
+    fi
+}
 
-echo "========================================"
+run_test_step "test_invalid_configs.sh" "Basic Invalid Configs"
+
+run_test_step "test_duplicates.sh" "Duplicate Locations"
+
 echo -e "${GREEN}All test sequences completed!${NC}"
+echo "========================================"
