@@ -27,7 +27,9 @@ run_test_step "test_invalid_configs.sh" "Basic Invalid Configs"
 
 run_test_step "test_duplicates.sh" "Duplicate Locations"
 
-run_test_step "test_invalid_configs" "Duplicate directive"
+run_test_step "test_invalid_configs.sh" "Duplicate directive"
+
+run_test_step "test_default_methods.sh" "Default methods not setted"
 
 echo -e "${GREEN}All test sequences completed!${NC}"
 echo "========================================"

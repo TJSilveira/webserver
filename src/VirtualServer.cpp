@@ -6,7 +6,7 @@
 /*   By: amoiseik <amoiseik@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 12:23:58 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/24 14:38:28 by amoiseik         ###   ########.fr       */
+/*   Updated: 2026/02/24 15:57:01 by amoiseik         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -137,6 +137,10 @@ VirtualServer::VirtualServer(const t_virtual_server &vir_serv_config,
 			throw ConfigError("directive not allowed in a virtual_server block",
 								curr_directive.name);
 		}
+	}
+	if (this->allow_methods.empty())
+	{
+		this->allow_methods.push_back("GET");
 	}
 	for (size_t i = 0; i < vir_serv_config.locations.size(); i++)
 	{
