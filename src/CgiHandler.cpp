@@ -6,7 +6,7 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/12 15:26:06 by amoiseik          #+#    #+#             */
-/*   Updated: 2026/02/19 14:40:47 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/24 14:14:25 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -59,7 +59,7 @@ CgiHandler::_buildEnvMap(const HttpTransaction &tran, int curr_socket)
 	env["REQUEST_METHOD"] = req.method;
 	std::map<std::string, std::string>::const_iterator it;
 	it = req.headers.find("Content-Length");
-	env["CONTENT_LENGTH"] = ft_int_to_string(req.body.length());
+	env["CONTENT_LENGTH"] = ft_int_to_string(req.body_bytes_read);
 	it = req.headers.find("Content-Type");
 	env["CONTENT_TYPE"] = (it != req.headers.end()) ? it->second : "";
 	// 5. Pathes

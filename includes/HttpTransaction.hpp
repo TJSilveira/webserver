@@ -6,7 +6,7 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 12:18:58 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/23 18:48:47 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/24 14:12:33 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -55,7 +55,8 @@ public:
 		PARSING_CHUNKED_CR,
 		PARSING_CHUNKED_DONE,
 		PARSING_CHUNKED_FINAL_CR,
-		PARSING_ERROR,
+		ERROR_PARSING,
+		ERROR_DISK_WRITTING,
 		ERROR_EXCEEDS_LIMIT,
 		ERROR_METHOD_NOT_ALLOWED,
 		PROCESSING,
@@ -65,7 +66,7 @@ public:
 		COMPLETE
 	};
 
-	void parse(const std::string &raw);
+	void parse(const std::string &raw, int socketfd);
 	void process_request(int epollfd, int curr_socket);
 	void prepare_response(int epollfd, int curr_socket);
 	void prepare_response_get(struct stat &s);
@@ -84,7 +85,7 @@ public:
 
 	void mark_as_complete();
 	void assign_state(State s);
-	void assign_state(State s, char c, int i, std::string str);
+	void assign_state(State s, const std::string &raw, int socketfd, int i);
 
 	HttpRequest request;
 	HttpResponse response;

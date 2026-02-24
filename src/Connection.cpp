@@ -6,7 +6,7 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 12:21:35 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/22 18:57:18 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/24 11:30:11 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -96,7 +96,7 @@ int Connection::read_full_recv()
 	if (bytes_received > 0)
 	{
 		buffer.resize(bytes_received);
-		current_transaction->parse(buffer);
+		current_transaction->parse(buffer, socket_fd);
 		return (BUFFER_READ);
 	}
 	else if (bytes_received == 0) // Client closed write side OR there is nothing more to read

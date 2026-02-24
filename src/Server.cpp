@@ -6,7 +6,7 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 12:23:47 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/23 19:22:49 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/24 14:38:16 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -123,7 +123,7 @@ void Server::init()
 			fd = create_listening_socket(port, "0.0.0.0");
 			listening_sockfds.insert(std::make_pair(fd,	&virtual_servers.at(i)));
 			bound_ports.insert(port);
-			logger(INFO, "Successfully bound port: " + ft_int_to_string(port) + " with fd: " + ft_int_to_string(fd), std::cout);
+			logger(INFO, "Successfully bounded port '" + ft_int_to_string(port) + "' with fd '" + ft_int_to_string(fd) + "'", std::cout);
 		}
 		else
 		{
@@ -218,7 +218,7 @@ void Server::read_handler(int epollfd, int socketfd)
 	if (status == SOCKET_FINISHED_READ)
 	{
 		curr_connection.set_keep_alive(false);
-		if (curr_connection.current_transaction->state < HttpTransaction::PARSING_ERROR)
+		if (curr_connection.current_transaction->state < HttpTransaction::ERROR_PARSING)
 		{
 			logger(INFO, "Client closed connection early. Cleaning up fd=" + ft_int_to_string(socketfd), std::cout);
 			clean_connection(epollfd, socketfd);
@@ -226,7 +226,7 @@ void Server::read_handler(int epollfd, int socketfd)
 		}
 	}
 
-	if (curr_connection.current_transaction->state < HttpTransaction::PARSING_ERROR)
+	if (curr_connection.current_transaction->state < HttpTransaction::ERROR_PARSING)
 		return;
 	
 	curr_connection.insert_keep_alive_header();
@@ -245,7 +245,7 @@ void Server::read_handler(int epollfd, int socketfd)
 void Server::cgi_read_handler(int epollfd, int cgifd)
 {
 	int		status;
-	char	buf[4096];
+	char	buf[65536];
 	int		client_fd;
 	ssize_t	n;
 
@@ -264,7 +264,6 @@ void Server::cgi_read_handler(int epollfd, int cgifd)
 		conn.current_transaction->cgi_info.buffer.append(buf, n);
 		return ;
 	}
-	std::cout << "input_doc_path: " << conn.current_transaction->cgi_info.input_doc_path.c_str() << std::endl;
 	clean_cgi_fd(epollfd, cgifd);
 	if (waitpid(conn.current_transaction->cgi_info.pid, &status, WNOHANG) > 0)
 	{
@@ -308,8 +307,7 @@ void Server::send_handler(int epollfd, int socketfd)
 			clean_connection(epollfd, socketfd);
 			return ;
 		}
-		if (!curr_connection.current_transaction->cgi_info.input_doc_path.empty())
-			unlink(curr_connection.current_transaction->cgi_info.input_doc_path.c_str());
+		curr_connection.current_transaction->request.clean_body_file();
 		delete curr_connection.current_transaction;
 		curr_connection.current_transaction = NULL;
 		change_socket_epollin(epollfd, socketfd);
@@ -317,6 +315,7 @@ void Server::send_handler(int epollfd, int socketfd)
 	else if (curr_connection.current_transaction->state ==
 		HttpTransaction::SENDING_ERROR)
 	{
+		curr_connection.current_transaction->request.clean_body_file();
 		clean_connection(epollfd, socketfd);
 		return ;
 	}
@@ -348,8 +347,6 @@ void Server::clean_connection(int epollfd, int socketfd)
 		return ;
 	if (it->second.current_transaction != NULL)
 	{
-		if (!it->second.current_transaction->cgi_info.input_doc_path.empty())
-			unlink(it->second.current_transaction->cgi_info.input_doc_path.c_str());
 		delete it->second.current_transaction;
 		it->second.current_transaction = NULL;
 	}
@@ -357,7 +354,7 @@ void Server::clean_connection(int epollfd, int socketfd)
 	drain_socket(socketfd);
 	close(socketfd);
 	active_connections.erase(it);
-	logger(INFO, "Closed socket with fd " + ft_int_to_string(socketfd), std::cout);
+	logger(CLOSE_SOCKET, "[Closed Connection]\t\t socket with fd " + ft_int_to_string(socketfd), std::cout);
 }
 
 void Server::clean_all_connections(int epollfd)
@@ -435,12 +432,12 @@ bool Server::accept_connections(int epollfd, int socketfd)
 
 			if (active_connections.size() >= MAX_CONNECTIONS)
 			{
-				logger(INFO, "Max connections reached. Dropping new connection.", std::cerr);
+				logger(WARNING, "Max connections reached. Dropping new connection.", std::cerr);
 				close(conn_sock);
 				continue;
 			}
 
-			logger(INFO, "[New connection] socket " + ft_int_to_string(conn_sock) + " from listening socket " + ft_int_to_string(socketfd), std::cout);
+			logger(OPEN_SOCKET, "[New connection]\t\tsocket with fd " + ft_int_to_string(conn_sock) + " from listening socket " + ft_int_to_string(socketfd), std::cout);
 			add_socket_epoll(epollfd, conn_sock);
 			active_connections.insert(std::make_pair(conn_sock, Connection(conn_sock, it_listen_sock->second)));
 		}
