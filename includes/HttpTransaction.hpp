@@ -6,7 +6,7 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 12:18:58 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/24 14:12:33 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/24 20:05:59 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -31,6 +31,9 @@ private:
 	int parse_chuncked_bytes_to_read;
 	std::string parse_chuncked_size_str;
 	bool parse_is_last_chunck;
+
+	bool is_directory;
+	bool is_cgi;
 
 public:
 	HttpTransaction(const VirtualServer *vir_server);
@@ -68,9 +71,10 @@ public:
 
 	void parse(const std::string &raw, int socketfd);
 	void process_request(int epollfd, int curr_socket);
+	void resolve_resource();
 	void prepare_response(int epollfd, int curr_socket);
-	void prepare_response_get(struct stat &s);
-	void prepare_response_post(int curr_socket);
+	void prepare_response_get();
+	void prepare_response_post();
 	void prepare_response_delete(struct stat &s);
 	void prepare_response_cgi(int curr_socket);
 	void build_error_response(int error_code);
@@ -79,7 +83,7 @@ public:
 	const Location *find_location();
 	std::string generate_error_page(int error_code);
 
-	void build_response_get_resource(const Location *matched_location, struct stat &s);
+	void build_response_get_resource();
 
 	std::string build_autoindex_string(std::string &dir_path);
 

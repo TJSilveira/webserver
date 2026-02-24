@@ -6,7 +6,7 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 12:22:21 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/24 14:17:35 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/24 20:12:22 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,8 +15,8 @@
 #include <cerrno>
 
 HttpTransaction::HttpTransaction(const VirtualServer *vir_server)
-	: parse_chuncked_bytes_to_read(0), parse_is_last_chunck(false),
-		vir_server(vir_server), location(NULL), state(PARSING_REQ_METHOD)
+	: parse_chuncked_bytes_to_read(0), parse_is_last_chunck(false), is_directory(false), 
+		is_cgi(false), vir_server(vir_server), location(NULL), state(PARSING_REQ_METHOD)
 {
 }
 
@@ -369,31 +369,16 @@ void HttpTransaction::process_request(int epollfd, int curr_socket)
 							request.uri.size() - request.uri.find_last_of('/') - 1);
 			if (len_file_name != 0)
 				file_name = std::string(request.uri,request.uri.find_last_of('/') + 1, len_file_name);
-			request.final_path = location->alias + file_name;
+			request.final_request_path = location->alias + file_name;
 			prepare_response(epollfd, curr_socket);
 		}
-		// 3.3 Normal request
-		else
-		{
-			std::string target_resource = request.uri;
+		// 3.3 Normal requests
+		resolve_resource();
 
-			target_resource = target_resource.substr(location->path.length(), target_resource.length() - location->path.length());
-			request.final_path = location->root + "/" + target_resource;
-			if ((ft_ends_with(request.final_path, ".bla") && request.method == "POST"))
-			{
-				request.final_path = build_cgi_path();
-				prepare_response_cgi(curr_socket);
-				return;
-			}
-			if (!location->cgi_ext.empty() && ft_ends_with(request.final_path, location->cgi_ext) &&
-				!ft_ends_with(request.final_path, ".bla"))
-			{
-				request.final_path = build_cgi_path();
-				prepare_response_cgi(curr_socket);
-				return;
-			}
+		if (is_cgi == true)
+			prepare_response_cgi(epollfd);
+		else
 			prepare_response(epollfd, curr_socket);
-		}
 	}
 	else if (state == ERROR_PARSING)
 	{
@@ -418,6 +403,56 @@ void HttpTransaction::process_request(int epollfd, int curr_socket)
 	}
 }
 
+void HttpTransaction::resolve_resource()
+{
+	struct stat	s;
+	CgiHandler cgi;
+
+	std::string target_resource = request.uri;
+
+	target_resource = target_resource.substr(location->path.length(), target_resource.length() - location->path.length());
+
+	if (!location->root.empty() && location->root.at(location->root.length() - 1) == '/')
+		request.final_request_path = location->root + target_resource;
+	else
+		request.final_request_path = location->root + "/" + target_resource;
+
+	if (stat(request.final_request_path.c_str(), &s) == 0)
+	{
+		// If the request uri matches a directory
+		if (S_ISDIR(s.st_mode))
+		{
+			if (request.final_request_path.at(request.final_request_path.length() - 1) != '/')
+				request.final_request_path += "/";
+			
+			// check if location has indices to return
+			for (size_t i = 0; i < location->index.size(); i++)
+			{
+				std::string index_path = request.final_request_path + location->index.at(i);
+				if (access(index_path.c_str(), W_OK) == 0)
+				{
+					request.final_request_path = index_path;
+					return;
+				}
+			}
+			is_directory = true;
+			return;
+		}
+	}
+	// For 42 tester
+	if ((ft_ends_with(request.final_request_path, ".bla") && request.method == "POST"))
+	{
+		request.final_request_path = build_cgi_path();
+		is_cgi = true;
+	}
+	else if (!location->cgi_ext.empty() && ft_ends_with(request.final_request_path, location->cgi_ext) &&
+		!ft_ends_with(request.final_request_path, ".bla"))
+	{
+		request.final_request_path = build_cgi_path();
+		is_cgi = true;
+	}
+}
+
 std::string HttpTransaction::build_cgi_path()
 {
 	std::string file_name;
@@ -435,14 +470,15 @@ std::string HttpTransaction::build_cgi_path()
 void HttpTransaction::prepare_response(int epollfd, int curr_socket)
 {
 	struct stat	s;
-	CgiHandler cgi;
 
-	if (stat(request.final_path.c_str(), &s) == 0)
+	if (stat(request.final_request_path.c_str(), &s) == 0)
 	{
-		if(request.method == "GET")
-			prepare_response_get(s);
+		if (access(request.final_request_path.c_str(), W_OK) != 0)
+			build_error_response(403);
+		else if(request.method == "GET")
+			prepare_response_get();
 		else if (request.method == "POST")
-			prepare_response_post(curr_socket);
+			prepare_response_post();
 		else if (request.method == "DELETE")
 			prepare_response_delete(s);
 		else
@@ -450,36 +486,29 @@ void HttpTransaction::prepare_response(int epollfd, int curr_socket)
 	}
 	else
 		build_error_response(404);
-	if (state != WAITING_CGI)
-		change_socket_epollout(epollfd, curr_socket);
+	change_socket_epollout(epollfd, curr_socket);
 }
 
-void HttpTransaction::prepare_response_get(struct stat &s)
+void HttpTransaction::prepare_response_get()
 {
-	build_response_get_resource(location, s);
+	build_response_get_resource();
 }
 
-void HttpTransaction::prepare_response_post(int curr_socket)
+void HttpTransaction::prepare_response_post()
 {
-	CgiHandler cgi;
-
-	if (location->cgi_ext.size() != 0 &&
-		ft_ends_with(request.final_path, location->cgi_ext) == true)
-		prepare_response_cgi(curr_socket);
-	else
-		build_bodyless_response(200);
+	build_bodyless_response(200);
 }
 
 void HttpTransaction::prepare_response_delete(struct stat &s)
 {
-	if (access(request.final_path.c_str(), W_OK) != 0 ||
+	if (access(request.final_request_path.c_str(), W_OK) != 0 ||
 		S_ISDIR(s.st_mode))
 	{
-		build_bodyless_response(403);
+		build_error_response(403);
 		return;
 	}
 
-	if (unlink(request.final_path.c_str()) == 0)
+	if (unlink(request.final_request_path.c_str()) == 0)
 		build_bodyless_response(204);
 	else
 		build_error_response(500);
@@ -490,7 +519,7 @@ void HttpTransaction::prepare_response_cgi(int curr_socket)
 	CgiHandler cgi;
 
 	// execute cgi
-	cgi_info = cgi.execute(location->cgi_path, request.final_path,
+	cgi_info = cgi.execute(location->cgi_path, request.final_request_path,
 			request.body_file_path, *this, curr_socket);
 
 	cgi_info.input_doc_path = request.body_file_path;
@@ -503,31 +532,16 @@ void HttpTransaction::prepare_response_cgi(int curr_socket)
 	}
 }
 
-void HttpTransaction::build_response_get_resource(const Location *matched_location, struct stat &s)
+void HttpTransaction::build_response_get_resource()
 {
 	std::ifstream html_file;
 	// If the request uri matches a directory
-	if (S_ISDIR(s.st_mode))
+	if (is_directory)
 	{
-		if (request.final_path.at(request.final_path.length() - 1) != '/')
-			request.final_path += "/";
-		
-		// check if location has indices to return
-		for (size_t i = 0; i < matched_location->index.size(); i++)
-		{
-			std::string index_path = request.final_path + matched_location->index.at(i);
-			if (open_file(&index_path.at(0), html_file) == true)
-			{
-				response.set_body(file_to_string(html_file));
-				response.set_head_method(request.method == "HEAD");
-				response.build_response(200);
-				return ;
-			}
-		}
 		// given there were no indices, check if we can return autoindex
-		if (matched_location->autoindex == true)
+		if (location->autoindex == true)
 		{
-			response.set_body(build_autoindex_string(request.final_path));
+			response.set_body(build_autoindex_string(request.final_request_path));
 			if (response.get_body().size() == 0)
 			{
 				build_error_response(500);
@@ -542,7 +556,7 @@ void HttpTransaction::build_response_get_resource(const Location *matched_locati
 	// If it is not a directory, it is a file
 	else
 	{
-		if (open_file(&request.final_path.at(0), html_file) == true)
+		if (open_file(&request.final_request_path.at(0), html_file) == true)
 		{
 			response.set_body(file_to_string(html_file));
 			response.set_head_method(request.method == "HEAD");
@@ -572,10 +586,17 @@ void HttpTransaction::build_bodyless_response(int status)
 
 std::string HttpTransaction::generate_error_page(int error_code)
 {
-	if (vir_server->error_page.count(error_code))
+	if (location && location->error_page.count(error_code))
 	{
-		std::string file_path =
-			"." + vir_server->root + vir_server->error_page.at(error_code);
+		std::string file_path =	location->root + location->error_page.at(error_code);
+		std::ifstream file_stream(file_path.c_str());
+		if (file_stream.is_open())
+			return std::string((std::istreambuf_iterator<char>(file_stream)),
+								std::istreambuf_iterator<char>());
+	}
+	else if (vir_server->error_page.count(error_code))
+	{
+		std::string file_path = vir_server->root + vir_server->error_page.at(error_code);
 		std::ifstream file_stream(file_path.c_str());
 		if (file_stream.is_open())
 			return std::string((std::istreambuf_iterator<char>(file_stream)),

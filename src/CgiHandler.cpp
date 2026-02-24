@@ -6,7 +6,7 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/12 15:26:06 by amoiseik          #+#    #+#             */
-/*   Updated: 2026/02/24 14:14:25 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/24 17:38:47 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -67,6 +67,7 @@ CgiHandler::_buildEnvMap(const HttpTransaction &tran, int curr_socket)
 	env["DOCUMENT_ROOT"] = root;
 	env["PATH_TRANSLATED"] = env["PATH_INFO"];
 	env["SCRIPT_NAME"] = "";
+	env["UPLOAD_DIR"] = tran.location->upload_store; 
 	// 5. Cookie
 	it = req.headers.find("Cookie");
 	if (it != req.headers.end())
@@ -206,6 +207,14 @@ struct CgiInfo CgiHandler::execute(const std::string &interpreterPath,
 				close(dev_null);
 			}
 		}
+
+		dev_null = open("/dev/null", O_RDONLY);
+		if (dev_null != -1)
+		{
+			dup2(dev_null, STDERR_FILENO);
+			close(dev_null);
+		}
+
 		dup2(pipe_out[WRITE], STDOUT_FILENO);
 
 		close(pipe_out[READ]);
