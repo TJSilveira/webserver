@@ -1,12 +1,10 @@
 Current:
 Add Delete method implementation -> Tiago
 Improve config client_body_max -> Tiago
-Make sure script errors give back the correct error -> Tiago
 Ensure that every read, write, recv, send has an if statement to close the connection if there is an error -> Tiago
 
 Next steps:
-Test with seige
-Test with other 42 webserv testing
+Test with other 42 webserv testing files
 
 Maybe it is not necessary:
 
@@ -37,3 +35,5 @@ Improve logging -> Tiago
 Add try catch blocks for parsing and lexer in main -> Tiago
 Stress test the server -> Tiago and Andrei
 Add limits to the number of sockets that are checked by epoll ->Tiago
+Test with seige -> Andrei
+Make sure script errors give back the correct error -> Tiago

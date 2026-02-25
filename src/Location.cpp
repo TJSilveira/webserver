@@ -6,7 +6,7 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 12:23:33 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/18 11:47:57 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/24 18:02:59 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -157,6 +157,15 @@ std::ostream &operator<<(std::ostream &os, const Location &loc)
 		os << *it << " ";
 	}
 	os << "\n";
+	os << "Allow Methods: ";
+	for (std::vector<std::string>::const_iterator it = loc.allow_methods.begin();
+			it != loc.allow_methods.end();
+			++it)
+	{
+		os << *it << " ";
+	}
+	os << "\n";
+
 	os << "Error Pages:\n";
 	for (std::map<int, std::string>::const_iterator it = loc.error_page.begin();
 			it != loc.error_page.end();
@@ -164,6 +173,7 @@ std::ostream &operator<<(std::ostream &os, const Location &loc)
 	{
 		os << "  " << it->first << " -> " << it->second << "\n";
 	}
+
 	os << "==========================\n";
 	return (os);
 }

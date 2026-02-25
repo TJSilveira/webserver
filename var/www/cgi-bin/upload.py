@@ -21,7 +21,7 @@ def main():
         return
 
     # Define upload directory
-    upload_dir = "./var/www/uploads"
+    upload_dir = os.environ.get('UPLOAD_DIR','')
 
     try:
         os.makedirs(upload_dir, exist_ok=True)

@@ -6,7 +6,7 @@
 /*   By: amoiseik <amoiseik@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 12:23:47 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/24 15:47:31 by amoiseik         ###   ########.fr       */
+/*   Updated: 2026/02/24 17:29:56 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -272,7 +272,7 @@ void Server::cgi_read_handler(int epollfd, int cgifd)
 	clean_cgi_fd(epollfd, cgifd);
 	if (waitpid(conn.current_transaction->cgi_info.pid, &status, WNOHANG) > 0)
 	{
-		if (WIFEXITED(status) && WEXITSTATUS(status) == 1)
+		if (WIFEXITED(status) && WEXITSTATUS(status) > 0)
 		{
 			conn.current_transaction->build_error_response(500);
 			change_socket_epollout(epollfd, client_fd);

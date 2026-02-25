@@ -6,7 +6,7 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 12:18:09 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/24 11:44:32 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/24 18:24:01 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -46,7 +46,7 @@ public:
 	size_t		body_bytes_read;				// Bytes of the body size
 	std::ofstream _body_stream;					// File stream where the body of the request is held
 
-	std::string	final_path;						// Actual path of the resource requested
+	std::string	final_request_path;						// Actual path of the resource requested
 };
 
 std::ostream &operator<<(std::ostream &os, const HttpRequest &req);
