@@ -5,7 +5,7 @@ RED='\033[0;31m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
-SCRIPT_DIR="$(dirname "$0")/scripts"
+SCRIPT_DIR="$(dirname "$0")/congig_tests"
 
 echo "========================================"
 echo -e "${YELLOW}      WEBSERV FULL TEST SUITE${NC}"

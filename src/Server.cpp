@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: amoiseik <amoiseik@student.42.fr>          +#+  +:+       +#+        */
+/*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 12:23:47 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/24 17:29:56 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/25 16:05:38 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -234,6 +234,7 @@ void Server::read_handler(int epollfd, int socketfd)
 	if (curr_connection.current_transaction->state < HttpTransaction::ERROR_PARSING)
 		return;
 	
+	std::cout << curr_connection.current_transaction->request;
 	curr_connection.insert_keep_alive_header();
 	curr_connection.current_transaction->process_request(epollfd, socketfd);
 	// std::cout << "State of the transaction after the process_request: " <<curr_connection.current_transaction->state <<std::endl;
@@ -261,7 +262,7 @@ void Server::cgi_read_handler(int epollfd, int cgifd)
 		clean_cgi_fd(epollfd, cgifd);
 		return;
 	}
-	
+
 	Connection &conn = active_connections.at(client_fd);
 	n = read(cgifd, buf, sizeof(buf));
 	if (n > 0)

@@ -6,7 +6,7 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/01/14 17:29:14 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/24 14:29:30 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/25 15:56:00 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -86,7 +86,7 @@ bool	ft_ends_with(const std::string &str, const std::string &to_search)
 		return (false);
 }
 
-std::string	ft_to_upper(std::string orginal)
+std::string	ft_to_upper(const std::string &orginal)
 {
 	std::string res = orginal;
 
@@ -128,4 +128,20 @@ void	logger(t_logger_enum status, std::string msg, std::ostream &os)
 	{
 		os << black + msg + reset << std::endl;
 	}
+}
+
+std::vector<std::string> split_string(const std::string &str, char delim)
+{
+	std::vector<std::string> result;
+	size_t start = 0;
+	size_t end = str.find(delim);
+
+	while (end != std::string::npos)
+	{
+		result.push_back(str.substr(start, end - start));
+		start = end + 1;
+		end = str.find(delim, start);
+	}
+	result.push_back(str.substr(start));
+	return (result);
 }

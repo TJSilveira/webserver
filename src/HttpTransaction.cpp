@@ -6,13 +6,15 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 12:22:21 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/25 11:38:50 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/25 16:20:44 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../includes/CgiHandler.hpp"
 #include "../includes/HttpTransaction.hpp"
 #include <cerrno>
+#include <deque>
+#include <vector>
 
 HttpTransaction::HttpTransaction(const VirtualServer *vir_server)
 	: parse_chuncked_bytes_to_read(0), parse_is_last_chunck(false), is_directory(false), 
@@ -336,10 +338,48 @@ bool is_allowed_method(const Location *matched_location, const VirtualServer *vi
 	return (method == "GET");
 }
 
+void HttpTransaction::normalize_uri()
+{
+	std::string res;
+	std::vector<std::string> uri_stack;
+	std::vector<std::string> uri_split = split_string(request.uri,'/');
+
+
+	std::vector<std::string>::iterator it = uri_split.begin();
+	
+	for (; it != uri_split.end(); it++)
+	{
+		if (it->compare("..") == 0)
+		{
+			if (!uri_stack.empty())
+				uri_stack.pop_back();		
+		}
+		else if(it->compare(".") == 0 || it->empty())
+			continue;
+		else
+			uri_stack.push_back((*it).c_str());
+	}
+	
+	res += '/';
+	
+	for (size_t i = 0; i < uri_stack.size(); i++)
+	{
+		res += uri_stack[i];
+		if (i < uri_stack.size() - 1)
+			res += '/';
+	}
+
+	if (request.uri.size() > 2 && request.uri.at(request.uri.size() - 1) == '/' && res != "/")
+		res += '/';
+	
+	request.uri = res;
+}
+
 void HttpTransaction::process_request(int epollfd, int curr_socket)
 {
 	if (state == PROCESSING)
 	{
+		normalize_uri();
 		// 1. Handle location-specific rules (only if location context exists)
 		if (location)
 		{
@@ -374,7 +414,9 @@ void HttpTransaction::process_request(int epollfd, int curr_socket)
 		// 4.1 CGI Handling (check extension only if location and cgi settings exist)
 		if (is_cgi)
 		{
+			std::cout << "[In the is_cgi] pre: " << request.final_request_path << ";";
 			request.final_request_path = build_cgi_path();
+			std::cout << "post: " << request.final_request_path<<"\n\n";
 			prepare_response_cgi(curr_socket);
 			return;
 		}
@@ -435,6 +477,7 @@ void HttpTransaction::resolve_resource()
 			if (request.final_request_path.at(request.final_request_path.length() - 1) != '/')
 				request.final_request_path += "/";
 			
+			std::string	initial_str = request.final_request_path;
 			// check if location has indices to return
 			for (size_t i = 0; i < location->index.size(); i++)
 			{
@@ -442,11 +485,10 @@ void HttpTransaction::resolve_resource()
 				if (access(index_path.c_str(), W_OK) == 0)
 				{
 					request.final_request_path = index_path;
-					return;
 				}
 			}
-			is_directory = true;
-			return;
+			if (request.final_request_path == initial_str)
+				is_directory = true;
 		}
 	}
 	// For 42 tester
@@ -454,12 +496,14 @@ void HttpTransaction::resolve_resource()
 	{
 		request.final_request_path = build_cgi_path();
 		is_cgi = true;
+		return;
 	}
 	else if (location && !location->cgi_ext.empty() && ft_ends_with(request.final_request_path, location->cgi_ext) &&
 		!ft_ends_with(request.final_request_path, ".bla"))
 	{
 		request.final_request_path = build_cgi_path();
 		is_cgi = true;
+		return;
 	}
 }
 
@@ -470,9 +514,9 @@ std::string HttpTransaction::build_cgi_path()
 	std::size_t len_file_name;
 	len_file_name =
 		std::max(static_cast<std::size_t>(0),
-					request.uri.size() - request.uri.find_last_of('/') - 1);
+					request.final_request_path.size() - request.final_request_path.find_last_of('/') - 1);
 	if (len_file_name != 0)
-		file_name = std::string(request.uri,request.uri.find_last_of('/') + 1, len_file_name);
+		file_name = std::string(request.final_request_path,request.final_request_path.find_last_of('/') + 1, len_file_name);
 	final_path = location->cgi_script_root + "/" + file_name;
 	return (final_path);	
 }
@@ -495,7 +539,7 @@ void HttpTransaction::prepare_response(int epollfd, int curr_socket)
 		change_socket_epollout(epollfd, curr_socket);
 		return;
 	}
-	
+
 	if (stat(request.final_request_path.c_str(), &s) == 0)
 	{
 		if (access(request.final_request_path.c_str(), W_OK) != 0)
@@ -659,8 +703,7 @@ std::string HttpTransaction::build_autoindex_string(std::string &dir_path)
 			continue ;
 		page += "<li><a href=http://localhost:";
 		page += ft_int_to_string(this->vir_server->listen);
-		page += dir_path;
-		page += "/";
+		page += request.uri;
 		page += file->d_name;
 		page += ">";
 		page += file->d_name;
