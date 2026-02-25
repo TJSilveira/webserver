@@ -6,7 +6,7 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 12:22:21 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/25 18:22:54 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/25 22:53:37 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -170,7 +170,12 @@ void HttpTransaction::parse(const std::string &raw, int socketfd)
 			}
 			i += bytes_to_append - 1;
 			
-			if (this->request.body_bytes_read == content_length)
+			if(request.body_bytes_read > location->client_max_body_size)
+			{
+				assign_state(ERROR_EXCEEDS_LIMIT);
+				break;
+			}
+			else if (this->request.body_bytes_read == content_length)
 			{
 				this->request.close_body_stream();
 				assign_state(PROCESSING);
@@ -217,7 +222,7 @@ void HttpTransaction::parse(const std::string &raw, int socketfd)
 			break ;
 		case PARSING_CHUNKED_BODY:
 		{
-			if (location != NULL && request.body_bytes_read >= location->client_max_body_size && parse_chuncked_bytes_to_read > 0)
+			if (location && request.body_bytes_read >= location->client_max_body_size && parse_chuncked_bytes_to_read > 0)
 			{
 				assign_state(ERROR_EXCEEDS_LIMIT);
 				return;
@@ -236,6 +241,11 @@ void HttpTransaction::parse(const std::string &raw, int socketfd)
 				parse_chuncked_bytes_to_read -= bytes_to_append;
 
 				i += (bytes_to_append - 1);
+				if(request.body_bytes_read > location->client_max_body_size)
+				{	
+					assign_state(ERROR_EXCEEDS_LIMIT);
+					break;
+				}
 			}
 			else if (parse_chuncked_bytes_to_read == 0 && raw.at(i) == '\r')
 				assign_state(PARSING_CHUNKED_CR);
@@ -413,9 +423,7 @@ void HttpTransaction::process_request(int epollfd, int curr_socket)
 		// 4.1 CGI Handling (check extension only if location and cgi settings exist)
 		if (is_cgi)
 		{
-			std::cout << "[In the is_cgi] pre: " << request.final_request_path << ";";
 			request.final_request_path = build_cgi_path();
-			std::cout << "post: " << request.final_request_path<<"\n\n";
 			prepare_response_cgi(curr_socket);
 			return;
 		}
@@ -441,6 +449,7 @@ void HttpTransaction::process_request(int epollfd, int curr_socket)
 	}
 	else
 	{
+		std::cout << "In the last else of process_request\n";
 		build_error_response(500);
 		change_socket_epollout(epollfd, curr_socket);		
 	}
@@ -597,7 +606,10 @@ void HttpTransaction::prepare_response_delete(struct stat &s)
 	if (unlink(request.final_request_path.c_str()) == 0)
 		build_bodyless_response(204);
 	else
+	{
+		std::cout << "In prepare response delete\n";
 		build_error_response(500);
+	}
 }
 
 void HttpTransaction::prepare_response_cgi(int curr_socket)
@@ -613,6 +625,7 @@ void HttpTransaction::prepare_response_cgi(int curr_socket)
 
 	if (cgi_info.is_started == false)
 	{
+		std::cout << "In prepare response cgi\n";
 		request.clean_body_file();
 		build_error_response(500);
 	}
@@ -630,6 +643,7 @@ void HttpTransaction::build_response_get_resource()
 			response.set_body(build_autoindex_string(request.final_request_path));
 			if (response.get_body().size() == 0)
 			{
+				std::cout << "In prepare response get resource\n";
 				build_error_response(500);
 				return ;
 			}
@@ -658,6 +672,7 @@ void HttpTransaction::build_response_get_resource()
 
 void HttpTransaction::build_error_response(int error_code)
 {
+	std::cout << "in build error response\n";
 	response.set_status(error_code);
 	response.set_body(generate_error_page(error_code));
 	response.set_head_method(request.method == "HEAD");
