@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpTransaction.cpp                                :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: amoiseik <amoiseik@student.42.fr>          +#+  +:+       +#+        */
+/*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 12:22:21 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/24 20:12:22 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/25 11:38:50 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -340,21 +340,10 @@ void HttpTransaction::process_request(int epollfd, int curr_socket)
 {
 	if (state == PROCESSING)
 	{
-		// 1. Determine base parameters (fallback to server settings if location is NULL)
-		std::string root_path = (location) ? location->root : vir_server->root;
-		
-		// 2. Validate HTTP Method (safe even if location is NULL)
-		// if (is_allowed_method(location, request.method) == false)
-		// {
-		// 	build_error_response(405);
-		// 	change_socket_epollout(epollfd, curr_socket);
-		// 	return;
-		// }
-
-		// 3. Handle location-specific rules (only if location context exists)
+		// 1. Handle location-specific rules (only if location context exists)
 		if (location)
 		{
-			// 3.1. Handle Redirections (e.g., return 301 http://example.com)
+			// 2.1. Handle Redirections (e.g., return 301 http://example.com)
 			if (location->return_redir.first != 0)
 			{
 				response.add_header("Location", location->return_redir.second);
@@ -364,41 +353,33 @@ void HttpTransaction::process_request(int epollfd, int curr_socket)
 				return;
 			}
 
-			// 3.2. Handle Alias (replaces root/URI logic)
+			// 2.2. Handle Alias (replaces root/URI logic)
 			if (!location->alias.empty())
 			{
 				std::string file_name = request.uri;
 				if (file_name.find_last_of('/') != std::string::npos)
 					file_name = file_name.substr(file_name.find_last_of('/') + 1);
-				request.final_path = location->alias + file_name;
+				request.final_request_path = location->alias + file_name;
+				std::cout << "Alias final_request_path: " << request.final_request_path << std::endl;
+				resolve_resource();
 				prepare_response(epollfd, curr_socket);
 				return;
 			}
 		}
 
-		// 4. Normal Request Path Construction
-		std::string target_resource = request.uri;
-		std::string loc_path = (location) ? location->path : "";
+		// 3. Find the correct path for the resource requested
+		resolve_resource();
 
-		// Remove the location prefix from the URI if it exists
-		if (!loc_path.empty() && target_resource.find(loc_path) == 0)
-			target_resource = target_resource.substr(loc_path.length());
-
-		// Concatenate root and resource path safely to avoid missing slashes
-		if (!target_resource.empty() && target_resource[0] == '/')
-			request.final_path = root_path + target_resource;
-		else
-			request.final_path = root_path + "/" + target_resource;
-
-		// 5. CGI Handling (check extension only if location and cgi settings exist)
-		if (location && !location->cgi_ext.empty() && ft_ends_with(request.final_path, location->cgi_ext))
+		// 4. Create response
+		// 4.1 CGI Handling (check extension only if location and cgi settings exist)
+		if (is_cgi)
 		{
-			request.final_path = build_cgi_path();
+			request.final_request_path = build_cgi_path();
 			prepare_response_cgi(curr_socket);
 			return;
 		}
 
-		// 6. Execute Response Preparation (stat, GET/POST/DELETE logic)
+		// 4.2 Execute non-CGI Response Preparation (GET/POST/DELETE logic)
 		prepare_response(epollfd, curr_socket);
 	}
 	else if (state == ERROR_PARSING)
@@ -429,14 +410,22 @@ void HttpTransaction::resolve_resource()
 	struct stat	s;
 	CgiHandler cgi;
 
+	// 2. Determine base parameters (fallback to server settings if location is NULL)
+	std::string root_path = (location) ? location->root : vir_server->root;
+
+	// 3. Normal Request Path Construction
 	std::string target_resource = request.uri;
+	std::string loc_path = (location) ? location->path : "";
 
-	target_resource = target_resource.substr(location->path.length(), target_resource.length() - location->path.length());
+	// Remove the location prefix from the URI if it exists
+	if (!loc_path.empty() && target_resource.find(loc_path) == 0)
+		target_resource = target_resource.substr(loc_path.length());
 
-	if (!location->root.empty() && location->root.at(location->root.length() - 1) == '/')
-		request.final_request_path = location->root + target_resource;
+	// Concatenate root and resource path safely to avoid missing slashes
+	if (!target_resource.empty() && target_resource[0] == '/')
+		request.final_request_path = root_path + target_resource;
 	else
-		request.final_request_path = location->root + "/" + target_resource;
+		request.final_request_path = root_path + "/" + target_resource;
 
 	if (stat(request.final_request_path.c_str(), &s) == 0)
 	{
@@ -461,12 +450,12 @@ void HttpTransaction::resolve_resource()
 		}
 	}
 	// For 42 tester
-	if ((ft_ends_with(request.final_request_path, ".bla") && request.method == "POST"))
+	if (location && (ft_ends_with(request.final_request_path, ".bla") && request.method == "POST"))
 	{
 		request.final_request_path = build_cgi_path();
 		is_cgi = true;
 	}
-	else if (!location->cgi_ext.empty() && ft_ends_with(request.final_request_path, location->cgi_ext) &&
+	else if (location && !location->cgi_ext.empty() && ft_ends_with(request.final_request_path, location->cgi_ext) &&
 		!ft_ends_with(request.final_request_path, ".bla"))
 	{
 		request.final_request_path = build_cgi_path();
@@ -496,7 +485,7 @@ void HttpTransaction::prepare_response(int epollfd, int curr_socket)
 	// Debuging:
     std::cout << "[DEBUG] Requested URI: " << request.uri << std::endl;
     std::cout << "[DEBUG] Matched Location: " << (location ? location->path : "NULL") << std::endl;
-    std::cout << "[DEBUG] Final Path: " << request.final_path << std::endl;
+    std::cout << "[DEBUG] Final Path: " << request.final_request_path << std::endl;
 	
 	// Before checking if the file exists, we MUST check if the method is permitted.
 	// This ensures a 405 error takes precedence over a 404 error.
@@ -507,7 +496,7 @@ void HttpTransaction::prepare_response(int epollfd, int curr_socket)
 		return;
 	}
 	
-	if (stat(request.final_path.c_str(), &s) == 0)
+	if (stat(request.final_request_path.c_str(), &s) == 0)
 	{
 		if (access(request.final_request_path.c_str(), W_OK) != 0)
 			build_error_response(403);
@@ -580,18 +569,16 @@ void HttpTransaction::build_response_get_resource()
 			response.set_body(build_autoindex_string(request.final_request_path));
 			if (response.get_body().size() == 0)
 			{
-				build_error_response(500); // Internal error if autoindex generation fails
-				return;
+				build_error_response(500);
+				return ;
 			}
 			response.build_response(200);
 		}
+		// Without any available indices or autoindex, we need to return an error
 		else
-		{
-			// No index found and autoindex is off
 			build_error_response(404);
-		}
 	}
-	// 5. Handle Regular File requests
+	// If not a directory, then it is a Regular File requests
 	else
 	{
 		if (open_file(&request.final_request_path.at(0), html_file) == true)
