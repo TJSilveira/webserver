@@ -6,7 +6,7 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 12:22:21 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/25 16:20:44 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/25 18:22:54 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -344,7 +344,6 @@ void HttpTransaction::normalize_uri()
 	std::vector<std::string> uri_stack;
 	std::vector<std::string> uri_split = split_string(request.uri,'/');
 
-
 	std::vector<std::string>::iterator it = uri_split.begin();
 	
 	for (; it != uri_split.end(); it++)
@@ -452,10 +451,10 @@ void HttpTransaction::resolve_resource()
 	struct stat	s;
 	CgiHandler cgi;
 
-	// 2. Determine base parameters (fallback to server settings if location is NULL)
+	// 1. Determine base parameters (fallback to server settings if location is NULL)
 	std::string root_path = (location) ? location->root : vir_server->root;
 
-	// 3. Normal Request Path Construction
+	// 2. Normal Request Path Construction
 	std::string target_resource = request.uri;
 	std::string loc_path = (location) ? location->path : "";
 
@@ -469,28 +468,51 @@ void HttpTransaction::resolve_resource()
 	else
 		request.final_request_path = root_path + "/" + target_resource;
 
+	// 3. Add index if it is warranted
 	if (stat(request.final_request_path.c_str(), &s) == 0)
 	{
 		// If the request uri matches a directory
 		if (S_ISDIR(s.st_mode))
 		{
-			if (request.final_request_path.at(request.final_request_path.length() - 1) != '/')
-				request.final_request_path += "/";
-			
-			std::string	initial_str = request.final_request_path;
-			// check if location has indices to return
-			for (size_t i = 0; i < location->index.size(); i++)
+			if (location)
 			{
-				std::string index_path = request.final_request_path + location->index.at(i);
-				if (access(index_path.c_str(), W_OK) == 0)
+				if (request.final_request_path.at(request.final_request_path.length() - 1) != '/')
+					request.final_request_path += "/";
+				
+				std::string	initial_str = request.final_request_path;
+				// check if location has indices to return
+				for (size_t i = 0; i < location->index.size(); i++)
 				{
-					request.final_request_path = index_path;
+					std::string index_path = request.final_request_path + location->index.at(i);
+					if (access(index_path.c_str(), W_OK) == 0)
+					{
+						request.final_request_path = index_path;
+					}
 				}
+				if (request.final_request_path == initial_str)
+					is_directory = true;
 			}
-			if (request.final_request_path == initial_str)
-				is_directory = true;
+			else
+			{
+				if (request.final_request_path.at(request.final_request_path.length() - 1) != '/')
+					request.final_request_path += "/";
+				
+				std::string	initial_str = request.final_request_path;
+				// check if virtual server has indices to return
+				for (size_t i = 0; i < vir_server->index.size(); i++)
+				{
+					std::string index_path = request.final_request_path + vir_server->index.at(i);
+					if (access(index_path.c_str(), W_OK) == 0)
+					{
+						request.final_request_path = index_path;
+					}
+				}
+				if (request.final_request_path == initial_str)
+					is_directory = true;
+			}
 		}
 	}
+	// 4. Update resource path if we are looking at a cgi request 
 	// For 42 tester
 	if (location && (ft_ends_with(request.final_request_path, ".bla") && request.method == "POST"))
 	{
@@ -525,11 +547,6 @@ void HttpTransaction::prepare_response(int epollfd, int curr_socket)
 {
 	struct stat	s;
 	CgiHandler cgi;
-	
-	// Debuging:
-    std::cout << "[DEBUG] Requested URI: " << request.uri << std::endl;
-    std::cout << "[DEBUG] Matched Location: " << (location ? location->path : "NULL") << std::endl;
-    std::cout << "[DEBUG] Final Path: " << request.final_request_path << std::endl;
 	
 	// Before checking if the file exists, we MUST check if the method is permitted.
 	// This ensures a 405 error takes precedence over a 404 error.
@@ -608,7 +625,7 @@ void HttpTransaction::build_response_get_resource()
 	if (is_directory)
 	{
 		// given there were no indices, check if we can return autoindex
-		if (location->autoindex == true)
+		if (location && location->autoindex == true)
 		{
 			response.set_body(build_autoindex_string(request.final_request_path));
 			if (response.get_body().size() == 0)
@@ -684,14 +701,14 @@ std::string HttpTransaction::build_autoindex_string(std::string &dir_path)
 
 	dir = opendir(dir_path.c_str());
 	std::string page = "<!DOCTYPE html>\n\
-    <html>\n\
-    <head>\n\
-            <title>" +
+	<html>\n\
+	<head>\n\
+			<title>" +
 		dir_path + "</title>\n\
-    </head>\n\
-    <body>\n\
-    <h1>INDEX</h1>\n\
-    <p>\n";
+	</head>\n\
+	<body>\n\
+	<h1>INDEX</h1>\n\
+	<p>\n";
 	if (dir == NULL)
 	{
 		return ("");
@@ -710,9 +727,9 @@ std::string HttpTransaction::build_autoindex_string(std::string &dir_path)
 		page += "</a>";
 	}
 	page += "\
-    </p>\n\
-    </body>\n\
-    </html>\n";
+	</p>\n\
+	</body>\n\
+	</html>\n";
 	return (page);
 }
 

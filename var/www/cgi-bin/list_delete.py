@@ -39,12 +39,107 @@ def main():
     body = f"""<!DOCTYPE html>
     <html>
     <head>
-        <title>File Manager</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About Webserv</title>
         <style>
-            li {{ margin-bottom: 10px; list-style: none; }}
-            button {{ margin-left: 10px; color: red; cursor: pointer; }}
+            body {{
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+                line-height: 1.6;
+                color: #333;
+                max-width: 800px;
+                margin: 0 auto;
+                padding: 20px;
+                background-color: #f9f9f9;
+            }}
+            header {{
+                border-bottom: 2px solid #e1e1e1;
+                padding-bottom: 20px;
+                margin-bottom: 30px;
+            }}
+            /* Navbar matching index.html style if implied, or keeping generic clean style */
+            nav {{
+                background: white;
+                padding: 15px;
+                border-radius: 4px;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+                margin-bottom: 30px;
+                width: 100%;
+                max-width: 800px; /* Match the body width */
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                box-sizing: border-box; 
+            }}
+            nav a {{
+                text-decoration: none;
+                color: #555;
+                margin: 0 10px;
+                font-weight: 500;
+            }}
+            nav a:hover {{
+                color: #2c3e50;
+            }}
+            h1 {{
+                color: #2c3e50;
+                margin: 0;
+                font-size: 2.2rem;
+            }}
+            .subtitle {{
+                color: #7f8c8d;
+                font-size: 1.1rem;
+                margin-top: 5px;
+            }}
+            section {{
+                background: white;
+                padding: 25px;
+                margin-bottom: 20px;
+                border-radius: 4px;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            }}
+            h2 {{
+                color: #2c3e50;
+                border-bottom: 1px solid #eee;
+                padding-bottom: 10px;
+                margin-top: 0;
+            }}
+            ul {{
+                padding-left: 20px;
+            }}
+            li {{
+                margin-bottom: 8px;
+            }}
+            footer {{
+                text-align: center;
+                font-size: 0.9rem;
+                color: #777;
+                margin-top: 40px;
+                border-top: 1px solid #e1e1e1;
+                padding-top: 20px;
+            }}
+            .tag {{
+                display: inline-block;
+                background: #eee;
+                padding: 2px 8px;
+                border-radius: 3px;
+                font-size: 0.85rem;
+                font-family: monospace;
+                color: #555;
+            }}
         </style>
     </head>
+    <body>
+        <nav>
+            <div style="font-weight: bold; font-size: 1.2rem;">webserv 42</div>
+            <div>
+                <a href="/">Home</a>
+                <a href="/about/">About</a>
+                <a href="/upload/">Upload</a>
+                <a href="/files/"style="color: #2c3e50; font-weight: bold;">Files</a>
+                <a href="/errors/">Errors</a>
+            </div>
+        </nav>
+
     <body>
         <h1>Uploaded Files</h1>
         <ul>
