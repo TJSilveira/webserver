@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   utils.hpp                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
+/*   By: amoiseik <amoiseik@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/01/14 17:29:14 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/25 15:16:45 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/27 12:18:12 by amoiseik         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -48,6 +48,8 @@ std::string					ft_to_upper(const std::string &orginal);
 bool						ft_ends_with(const std::string &str, const std::string &to_search);
 
 void						logger(t_logger_enum status, std::string msg, std::ostream &os);
+
+long long					extract_size_to_bytes(std::string str);
 
 template <typename T>
 std::string ft_int_to_string(T value)

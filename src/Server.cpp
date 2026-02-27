@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
+/*   By: amoiseik <amoiseik@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 12:23:47 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/25 22:53:22 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/27 12:20:25 by amoiseik         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -71,11 +71,10 @@ Server::Server(t_server &server_config)
 		else if (curr_directive.name == "client_max_body_size")
 		{
 			std::string arg = curr_directive.args.at(0);
-			if (arg.empty() || arg.find_first_not_of("0123456789") != std::string::npos)
-			{
-				throw ConfigError("client_max_body_size must be a non-negative integer", arg);
-			}
-			this->client_max_body_size = static_cast<size_t>(atol(arg.c_str()));
+			long long size = extract_size_to_bytes(arg);
+			if (size < 0)
+				throw ConfigError("client_max_body_size has invalid format", arg);
+			this->client_max_body_size = static_cast<size_t>(size);
 		}
 		else if (curr_directive.name == "index")
 		{

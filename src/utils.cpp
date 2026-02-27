@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   utils.cpp                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
+/*   By: amoiseik <amoiseik@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/01/14 17:29:14 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/25 15:56:00 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/27 12:24:52 by amoiseik         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -144,4 +144,36 @@ std::vector<std::string> split_string(const std::string &str, char delim)
 	}
 	result.push_back(str.substr(start));
 	return (result);
+}
+
+long long extract_size_to_bytes(std::string str)
+{
+	if (str.empty()) return 0;
+
+	size_t first_alpha = str.find_first_of("KMGkmg");
+	std::string numeric_part = (first_alpha == std::string::npos) ? str : str.substr(0, first_alpha);
+
+	if (numeric_part.empty())
+		return -1;
+
+	char unit = std::toupper(str[str.size() - 1]);
+	long long multiplier = 1;
+
+	if (unit == 'K') {
+		multiplier = 1024;
+		numeric_part = str.substr(0, str.size() - 1);
+	} else if (unit == 'M') {
+		multiplier = 1024 * 1024;
+		numeric_part = str.substr(0, str.size() - 1);
+	} else if (unit == 'G') {
+		multiplier = 1024 * 1024 * 1024;
+		numeric_part = str.substr(0, str.size() - 1);
+	}
+
+	for (size_t i = 0; i < numeric_part.size(); ++i) {
+		if (!std::isdigit(numeric_part[i]))
+			return -1;
+	}
+
+	return std::atoll(numeric_part.c_str()) * multiplier;
 }

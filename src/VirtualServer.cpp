@@ -6,7 +6,7 @@
 /*   By: amoiseik <amoiseik@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 12:23:58 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/24 15:57:01 by amoiseik         ###   ########.fr       */
+/*   Updated: 2026/02/27 12:19:02 by amoiseik         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -93,9 +93,11 @@ VirtualServer::VirtualServer(const t_virtual_server &vir_serv_config,
 				throw ConfigError("client_max_body_size must have one parameter", curr_directive.name);
 
 			std::string arg = curr_directive.args.at(0);
-			if (arg.find_first_not_of("0123456789") != std::string::npos)
-				throw ConfigError("client_max_body_size must be a positive integer", arg);
-			this->client_max_body_size = static_cast<size_t>(atol(arg.c_str()));
+			long long size = extract_size_to_bytes(arg);
+			if (size < 0)
+				throw ConfigError("client_max_body_size has invalid format", arg);
+			this->client_max_body_size = static_cast<size_t>(size);
+
 			is_body_size_set = true;
 		}
 		else if (curr_directive.name == "index")

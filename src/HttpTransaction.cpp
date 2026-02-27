@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpTransaction.cpp                                :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
+/*   By: amoiseik <amoiseik@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 12:22:21 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/25 22:53:37 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/27 12:10:26 by amoiseik         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -649,9 +649,11 @@ void HttpTransaction::build_response_get_resource()
 			}
 			response.build_response(200);
 		}
-		// Without any available indices or autoindex, we need to return an error
 		else
+		{
+			// No index found and autoindex is off
 			build_error_response(404);
+		}
 	}
 	// If not a directory, then it is a Regular File requests
 	else
