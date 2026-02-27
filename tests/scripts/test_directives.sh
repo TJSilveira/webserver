@@ -18,7 +18,6 @@ fi
 
 output=$(./webserv "$FILE" 2>&1)
 
-# Проверяем наличие ключевых слов ошибок в выводе
 errors=("duplicate directive" "invalid error code" "duplicate location path found")
 
 for err in "${errors[@]}"; do
