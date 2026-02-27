@@ -6,7 +6,7 @@
 /*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 12:18:58 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/24 20:05:59 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/25 14:36:41 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -71,6 +71,7 @@ public:
 
 	void parse(const std::string &raw, int socketfd);
 	void process_request(int epollfd, int curr_socket);
+	void normalize_uri();
 	void resolve_resource();
 	void prepare_response(int epollfd, int curr_socket);
 	void prepare_response_get();

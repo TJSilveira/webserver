@@ -6,7 +6,7 @@
 /*   By: amoiseik <amoiseik@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 12:23:47 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/24 17:29:56 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/25 22:53:22 by tsilveir         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -236,7 +236,6 @@ void Server::read_handler(int epollfd, int socketfd)
 	
 	curr_connection.insert_keep_alive_header();
 	curr_connection.current_transaction->process_request(epollfd, socketfd);
-	// std::cout << "State of the transaction after the process_request: " <<curr_connection.current_transaction->state <<std::endl;
 	if (curr_connection.current_transaction->state ==
 		HttpTransaction::WAITING_CGI)
 	{
@@ -261,7 +260,7 @@ void Server::cgi_read_handler(int epollfd, int cgifd)
 		clean_cgi_fd(epollfd, cgifd);
 		return;
 	}
-	
+
 	Connection &conn = active_connections.at(client_fd);
 	n = read(cgifd, buf, sizeof(buf));
 	if (n > 0)

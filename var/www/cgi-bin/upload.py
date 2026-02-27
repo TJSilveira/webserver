@@ -2,7 +2,13 @@
 
 import os
 import sys
+import warnings
+
+if not sys.warnoptions:
+    warnings.simplefilter("ignore")
+
 import cgi
+
 
 def main():
     # Get CGI environment variables
