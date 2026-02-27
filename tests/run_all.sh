@@ -31,5 +31,7 @@ run_test_step "test_invalid_configs.sh" "Duplicate directive"
 
 run_test_step "test_default_methods.sh" "Default methods not setted"
 
+run_test_step "test_body_size.sh" "Body size with m, M, k and K"
+
 echo -e "${GREEN}All test sequences completed!${NC}"
 echo "========================================"

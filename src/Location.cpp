@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Location.cpp                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
+/*   By: amoiseik <amoiseik@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 12:23:33 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/24 18:02:59 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/02/27 12:22:14 by amoiseik         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -53,11 +53,15 @@ Location::Location(const t_location &location_config,
 		else if (curr_directive.name == "client_max_body_size")
 		{
 			if (curr_directive.args.size() != 1)
-				throw ConfigError(
-					"client_max_body_size must only have one int assigned",
-					curr_directive.name);
-			this->client_max_body_size =
-				extract_and_validate_str_to_int(curr_directive.args.at(0));
+				throw ConfigError("client_max_body_size must have one parameter", curr_directive.name);
+			
+			std::string arg = curr_directive.args.at(0);
+			long long size = extract_size_to_bytes(arg);
+			
+			if (size < 0)
+				throw ConfigError("client_max_body_size has invalid format", arg);
+			
+			this->client_max_body_size = static_cast<size_t>(size);
 		}
 		else if (curr_directive.name == "index")
 		{
