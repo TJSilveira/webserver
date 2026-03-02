@@ -6,7 +6,7 @@
 /*   By: amoiseik <amoiseik@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 12:23:47 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/27 12:20:25 by amoiseik         ###   ########.fr       */
+/*   Updated: 2026/03/02 17:57:03 by amoiseik         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -194,6 +194,7 @@ void Server::run_server()
 			}
 		}
 		close_inactive_connections(epollfd);
+		check_cgi_timeouts(epollfd);
 	}
 	clean_all_connections(epollfd);
 }
@@ -483,7 +484,6 @@ std::ostream &operator<<(std::ostream &os, const Server &s)
 	return (os);
 }
 
-
 void Server::print_req_resp(const Connection &curr_connection)
 {
 	std::cout << "==== THIS IS THE REQUEST ====\n";
@@ -492,4 +492,42 @@ void Server::print_req_resp(const Connection &curr_connection)
 	std::cout << "==== THIS IS THE response ====\n";
 	std::cout << curr_connection.current_transaction->response;
 	std::cout << "\n==== END OF THE response ====\n";
+}
+
+void Server::check_cgi_timeouts(int epollfd) {
+	struct timeval now;
+	gettimeofday(&now, NULL);
+
+	std::map<int, int>::iterator it = cgi_output_map.begin();
+	while (it != cgi_output_map.end()) {
+		int cgifd = it->first;
+		int client_fd = it->second;
+		
+		if (active_connections.find(client_fd) != active_connections.end()) {
+			Connection &conn = active_connections.at(client_fd);
+			if (conn.current_transaction && conn.current_transaction->state == HttpTransaction::WAITING_CGI) {
+				
+				long elapsed = now.tv_sec - conn.current_transaction->cgi_info.start_time.tv_sec;
+				
+				if (elapsed > MAX_CGI_RUNTIME) { // Timeout 10 sec
+					logger(WARNING, "CGI Timeout for PID " + ft_int_to_string(conn.current_transaction->cgi_info.pid), std::cerr);
+					
+					// 1. Kill hanging procces
+					kill(conn.current_transaction->cgi_info.pid, SIGKILL);
+					waitpid(conn.current_transaction->cgi_info.pid, NULL, 0);
+					
+					// 2. Send 504 Gateway Timeout
+					conn.current_transaction->build_error_response(504);
+					change_socket_epollout(epollfd, client_fd);
+					
+					// 3. Clean pipe
+					clean_cgi_fd(epollfd, cgifd);
+					
+					it = cgi_output_map.begin();
+					continue;
+				}
+			}
+		}
+		++it;
+	}
 }

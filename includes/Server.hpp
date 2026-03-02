@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.hpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
+/*   By: amoiseik <amoiseik@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/01/26 22:41:05 by tiago             #+#    #+#             */
-/*   Updated: 2026/02/23 18:03:30 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/03/02 17:22:56 by amoiseik         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,6 +28,7 @@
 # define MAX_EVENTS 8192
 # define MAX_CONNECTIONS 1024
 # define TIMEOUT_SECONDS 600
+# define MAX_CGI_RUNTIME 10
 
 class Server
 {
@@ -43,13 +44,14 @@ public:
 	void close_inactive_connections(int epollfd);
 	void clean_cgi_fd(int epollfd, int cgifd);
 	bool accept_connections(int epollfd, int sockfd);
+	void check_cgi_timeouts(int epollfd);
 
 	// Handlers
 	void read_handler(int epollfd, int socketfd);
 	void send_handler(int epollfd, int socketfd);
 	void cgi_read_handler(int epollfd, int cgifd);
 
-	void	print_req_resp(const Connection &curr_connection);
+	void print_req_resp(const Connection &curr_connection);
 
 	static std::vector<std::string> directives;
 	static std::vector<std::string> context;

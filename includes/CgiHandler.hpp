@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   CgiHandler.hpp                                     :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
+/*   By: amoiseik <amoiseik@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/12 15:26:21 by amoiseik          #+#    #+#             */
-/*   Updated: 2026/02/18 17:32:15 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/03/02 17:13:51 by amoiseik         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,6 +18,7 @@
 # include <map>
 # include <string>
 # include <unistd.h>
+# include <sys/time.h>
 
 class		HttpTransaction;
 
@@ -29,8 +30,12 @@ struct		CgiInfo
 	bool	is_started;
 	std::string	buffer;
 	std::string	input_doc_path;
+	struct timeval start_time;
 
-	CgiInfo(): pipe_fd(-1), pid(-1), is_started(false){}
+	CgiInfo(): pipe_fd(-1), pid(-1), is_started(false){
+		start_time.tv_sec = 0;
+		start_time.tv_usec = 0;
+	}
 };
 
 class CgiHandler
