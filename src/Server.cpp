@@ -6,7 +6,7 @@
 /*   By: amoiseik <amoiseik@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 12:23:47 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/03/02 17:57:03 by amoiseik         ###   ########.fr       */
+/*   Updated: 2026/03/03 18:34:24 by amoiseik         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -131,8 +131,7 @@ void Server::init()
 		}
 		else
 		{
-			logger(ERROR, "Port already in use", std::cerr);
-			exit(EXIT_FAILURE);
+			logger(INFO, "Port " + ft_int_to_string(port) + " already bound, adding virtual server name", std::cout);
 		}
 	}
 	logger(INFO, "Server waiting for connections...", std::cout);
@@ -233,7 +232,28 @@ void Server::read_handler(int epollfd, int socketfd)
 
 	if (curr_connection.current_transaction->state < HttpTransaction::ERROR_PARSING)
 		return;
-	
+
+	if (curr_connection.current_transaction->state >= HttpTransaction::ERROR_PARSING) {
+		std::string host_header = "";
+		if (curr_connection.current_transaction->request.headers.count("Host")) {
+			host_header = curr_connection.current_transaction->request.headers["Host"];
+		}
+
+		const VirtualServer* correct_server = find_virtual_server(
+			curr_connection.server_config->listen, 
+			host_header
+		);
+
+		if (correct_server) {
+			curr_connection.server_config = correct_server;
+			curr_connection.current_transaction->vir_server = correct_server;
+			
+			curr_connection.current_transaction->location = curr_connection.current_transaction->find_location();
+
+			logger(INFO, "Virtual server switched to: " + host_header, std::cout);
+		}
+	}
+
 	curr_connection.insert_keep_alive_header();
 	curr_connection.current_transaction->process_request(epollfd, socketfd);
 	if (curr_connection.current_transaction->state ==
@@ -530,4 +550,24 @@ void Server::check_cgi_timeouts(int epollfd) {
 		}
 		++it;
 	}
+}
+
+const VirtualServer* Server::find_virtual_server(int port, const std::string& host_header) {
+	std::string host = host_header;
+	size_t colon_pos = host.find(':');
+	if (colon_pos != std::string::npos)
+		host = host.substr(0, colon_pos);
+
+	const VirtualServer* default_server = NULL;
+
+	for (size_t i = 0; i < virtual_servers.size(); ++i) {
+		if (virtual_servers[i].listen == port) {
+			if (!default_server)
+				default_server = &virtual_servers[i];
+			
+			if (virtual_servers[i].server_name == host)
+				return &virtual_servers[i];
+		}
+	}
+	return default_server;
 }

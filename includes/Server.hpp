@@ -6,7 +6,7 @@
 /*   By: amoiseik <amoiseik@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/01/26 22:41:05 by tiago             #+#    #+#             */
-/*   Updated: 2026/03/02 17:22:56 by amoiseik         ###   ########.fr       */
+/*   Updated: 2026/03/03 18:36:03 by amoiseik         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -58,6 +58,8 @@ public:
 
 	// Virtual Servers
 	std::vector<VirtualServer> virtual_servers;
+	const VirtualServer* find_virtual_server(int port, const std::string& host_header);
+
 
 	// Listening sockets
 	std::map<int, const VirtualServer *> listening_sockfds;
