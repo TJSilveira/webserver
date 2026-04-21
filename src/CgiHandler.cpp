@@ -219,12 +219,32 @@ struct CgiInfo CgiHandler::execute(const std::string &interpreterPath,
 
 		close(pipe_out[READ]);
 		close(pipe_out[WRITE]);
-		// 3. Execute script
+
+		// 3. chdir to the script's directory so its relative file accesses work.
+		std::string script_dir;
+		std::string script_name;
+		std::size_t slash = scriptPath.find_last_of('/');
+		if (slash != std::string::npos)
+		{
+			script_dir = scriptPath.substr(0, slash);
+			script_name = scriptPath.substr(slash + 1);
+		}
+		else
+		{
+			script_name = scriptPath;
+		}
+		if (!script_dir.empty() && chdir(script_dir.c_str()) == -1)
+		{
+			std::cerr << "chdir failed" << std::endl;
+			exit(1);
+		}
+
+		// 4. Execute script
 		argv[0] = const_cast<char *>(interpreterPath.c_str());
-		argv[1] = const_cast<char *>(scriptPath.c_str());
+		argv[1] = const_cast<char *>(script_name.c_str());
 		argv[2] = NULL;
 		execve(argv[0], argv, envp);
-		write(STDERR_FILENO, "execve failed\n", 14);
+		std::cerr << "execve failed" << std::endl;
 		exit(1);
 	}
 	// PARENT PROCESS
