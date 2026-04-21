@@ -374,7 +374,6 @@ void Server::clean_connection(int epollfd, int socketfd)
 		it->second.current_transaction = NULL;
 	}
 	remove_socket_epoll(epollfd, socketfd);
-	drain_socket(socketfd);
 	close(socketfd);
 	active_connections.erase(it);
 	logger(CLOSE_SOCKET, "[Closed Connection]\t\t socket with fd " + ft_int_to_string(socketfd), std::cout);

@@ -398,6 +398,7 @@ void HttpTransaction::process_request(int curr_socket)
 				response.add_header("Location", location->return_redir.second);
 				response.set_head_method(request.method == "HEAD");
 				response.build_response(location->return_redir.first);
+				state = SENDING;
 				return;
 			}
 
@@ -575,6 +576,8 @@ void HttpTransaction::prepare_response()
 	}
 	else
 		build_error_response(404);
+	if (state == PROCESSING)
+		state = SENDING;
 }
 
 void HttpTransaction::prepare_response_get()
