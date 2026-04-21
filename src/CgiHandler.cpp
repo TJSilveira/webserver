@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   CgiHandler.cpp                                     :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: tsilveir <tsilveir@student.42berlin.de>    +#+  +:+       +#+        */
+/*   By: amoiseik <amoiseik@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/12 15:26:06 by amoiseik          #+#    #+#             */
-/*   Updated: 2026/02/25 12:01:54 by tsilveir         ###   ########.fr       */
+/*   Updated: 2026/03/02 17:14:32 by amoiseik         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -228,6 +228,7 @@ struct CgiInfo CgiHandler::execute(const std::string &interpreterPath,
 		exit(1);
 	}
 	// PARENT PROCESS
+	gettimeofday(&info.start_time, NULL);
 	close(pipe_out[WRITE]);
 	_freeEnv(envp);
 	info.pipe_fd = pipe_out[READ];

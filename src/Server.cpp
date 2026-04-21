@@ -6,7 +6,7 @@
 /*   By: amoiseik <amoiseik@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 12:23:47 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/02/27 12:20:25 by amoiseik         ###   ########.fr       */
+/*   Updated: 2026/03/03 18:34:24 by amoiseik         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -131,8 +131,7 @@ void Server::init()
 		}
 		else
 		{
-			logger(ERROR, "Port already in use", std::cerr);
-			exit(EXIT_FAILURE);
+			logger(INFO, "Port " + ft_int_to_string(port) + " already bound, adding virtual server name", std::cout);
 		}
 	}
 	logger(INFO, "Server waiting for connections...", std::cout);
@@ -194,6 +193,7 @@ void Server::run_server()
 			}
 		}
 		close_inactive_connections(epollfd);
+		check_cgi_timeouts(epollfd);
 	}
 	clean_all_connections(epollfd);
 }
@@ -232,7 +232,28 @@ void Server::read_handler(int epollfd, int socketfd)
 
 	if (curr_connection.current_transaction->state < HttpTransaction::ERROR_PARSING)
 		return;
-	
+
+	if (curr_connection.current_transaction->state >= HttpTransaction::ERROR_PARSING) {
+		std::string host_header = "";
+		if (curr_connection.current_transaction->request.headers.count("Host")) {
+			host_header = curr_connection.current_transaction->request.headers["Host"];
+		}
+
+		const VirtualServer* correct_server = find_virtual_server(
+			curr_connection.server_config->listen, 
+			host_header
+		);
+
+		if (correct_server) {
+			curr_connection.server_config = correct_server;
+			curr_connection.current_transaction->vir_server = correct_server;
+			
+			curr_connection.current_transaction->location = curr_connection.current_transaction->find_location();
+
+			logger(INFO, "Virtual server switched to: " + host_header, std::cout);
+		}
+	}
+
 	curr_connection.insert_keep_alive_header();
 	curr_connection.current_transaction->process_request(epollfd, socketfd);
 	if (curr_connection.current_transaction->state ==
@@ -483,7 +504,6 @@ std::ostream &operator<<(std::ostream &os, const Server &s)
 	return (os);
 }
 
-
 void Server::print_req_resp(const Connection &curr_connection)
 {
 	std::cout << "==== THIS IS THE REQUEST ====\n";
@@ -492,4 +512,62 @@ void Server::print_req_resp(const Connection &curr_connection)
 	std::cout << "==== THIS IS THE response ====\n";
 	std::cout << curr_connection.current_transaction->response;
 	std::cout << "\n==== END OF THE response ====\n";
+}
+
+void Server::check_cgi_timeouts(int epollfd) {
+	struct timeval now;
+	gettimeofday(&now, NULL);
+
+	std::map<int, int>::iterator it = cgi_output_map.begin();
+	while (it != cgi_output_map.end()) {
+		int cgifd = it->first;
+		int client_fd = it->second;
+		
+		if (active_connections.find(client_fd) != active_connections.end()) {
+			Connection &conn = active_connections.at(client_fd);
+			if (conn.current_transaction && conn.current_transaction->state == HttpTransaction::WAITING_CGI) {
+				
+				long elapsed = now.tv_sec - conn.current_transaction->cgi_info.start_time.tv_sec;
+				
+				if (elapsed > MAX_CGI_RUNTIME) { // Timeout 10 sec
+					logger(WARNING, "CGI Timeout for PID " + ft_int_to_string(conn.current_transaction->cgi_info.pid), std::cerr);
+					
+					// 1. Kill hanging procces
+					kill(conn.current_transaction->cgi_info.pid, SIGKILL);
+					waitpid(conn.current_transaction->cgi_info.pid, NULL, 0);
+					
+					// 2. Send 504 Gateway Timeout
+					conn.current_transaction->build_error_response(504);
+					change_socket_epollout(epollfd, client_fd);
+					
+					// 3. Clean pipe
+					clean_cgi_fd(epollfd, cgifd);
+					
+					it = cgi_output_map.begin();
+					continue;
+				}
+			}
+		}
+		++it;
+	}
+}
+
+const VirtualServer* Server::find_virtual_server(int port, const std::string& host_header) {
+	std::string host = host_header;
+	size_t colon_pos = host.find(':');
+	if (colon_pos != std::string::npos)
+		host = host.substr(0, colon_pos);
+
+	const VirtualServer* default_server = NULL;
+
+	for (size_t i = 0; i < virtual_servers.size(); ++i) {
+		if (virtual_servers[i].listen == port) {
+			if (!default_server)
+				default_server = &virtual_servers[i];
+			
+			if (virtual_servers[i].server_name == host)
+				return &virtual_servers[i];
+		}
+	}
+	return default_server;
 }
