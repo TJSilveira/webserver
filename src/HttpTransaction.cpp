@@ -384,7 +384,7 @@ void HttpTransaction::normalize_uri()
 	request.uri = res;
 }
 
-void HttpTransaction::process_request(int epollfd, int curr_socket)
+void HttpTransaction::process_request(int curr_socket)
 {
 	if (state == PROCESSING)
 	{
@@ -398,7 +398,6 @@ void HttpTransaction::process_request(int epollfd, int curr_socket)
 				response.add_header("Location", location->return_redir.second);
 				response.set_head_method(request.method == "HEAD");
 				response.build_response(location->return_redir.first);
-				change_socket_epollout(epollfd, curr_socket);
 				return;
 			}
 
@@ -411,7 +410,7 @@ void HttpTransaction::process_request(int epollfd, int curr_socket)
 				request.final_request_path = location->alias + file_name;
 				std::cout << "Alias final_request_path: " << request.final_request_path << std::endl;
 				resolve_resource();
-				prepare_response(epollfd, curr_socket);
+				prepare_response();
 				return;
 			}
 		}
@@ -429,29 +428,25 @@ void HttpTransaction::process_request(int epollfd, int curr_socket)
 		}
 
 		// 4.2 Execute non-CGI Response Preparation (GET/POST/DELETE logic)
-		prepare_response(epollfd, curr_socket);
+		prepare_response();
 	}
 	else if (state == ERROR_PARSING)
 	{
 		build_error_response(400);
-		change_socket_epollout(epollfd, curr_socket);
 	}
 	else if (state == ERROR_METHOD_NOT_ALLOWED)
 	{
 		build_error_response(405);
-		change_socket_epollout(epollfd, curr_socket);
 	}
 	else if (state == ERROR_EXCEEDS_LIMIT)
 	{
 		response.add_header("Connection", "close");
 		build_error_response(413);
-		change_socket_epollout(epollfd, curr_socket);
 	}
 	else
 	{
 		std::cout << "In the last else of process_request\n";
 		build_error_response(500);
-		change_socket_epollout(epollfd, curr_socket);		
 	}
 }
 
@@ -552,7 +547,7 @@ std::string HttpTransaction::build_cgi_path()
 	return (final_path);	
 }
 
-void HttpTransaction::prepare_response(int epollfd, int curr_socket)
+void HttpTransaction::prepare_response()
 {
 	struct stat	s;
 	CgiHandler cgi;
@@ -562,7 +557,6 @@ void HttpTransaction::prepare_response(int epollfd, int curr_socket)
 	if (is_allowed_method(location, vir_server, request.method) == false)
 	{
 		build_error_response(405);
-		change_socket_epollout(epollfd, curr_socket);
 		return;
 	}
 
@@ -581,7 +575,6 @@ void HttpTransaction::prepare_response(int epollfd, int curr_socket)
 	}
 	else
 		build_error_response(404);
-	change_socket_epollout(epollfd, curr_socket);
 }
 
 void HttpTransaction::prepare_response_get()

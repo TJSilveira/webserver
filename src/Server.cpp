@@ -255,7 +255,7 @@ void Server::read_handler(int epollfd, int socketfd)
 	}
 
 	curr_connection.insert_keep_alive_header();
-	curr_connection.current_transaction->process_request(epollfd, socketfd);
+	curr_connection.current_transaction->process_request(socketfd);
 	if (curr_connection.current_transaction->state ==
 		HttpTransaction::WAITING_CGI)
 	{
@@ -294,7 +294,6 @@ void Server::cgi_read_handler(int epollfd, int cgifd)
 		if (WIFEXITED(status) && WEXITSTATUS(status) > 0)
 		{
 			conn.current_transaction->build_error_response(500);
-			change_socket_epollout(epollfd, client_fd);
 			return;
 		}
 	}
@@ -311,7 +310,6 @@ void Server::cgi_read_handler(int epollfd, int cgifd)
 		conn.current_transaction->response._response_buffer = conn.current_transaction->cgi_info.buffer;
 	conn.set_keep_alive(false);
 	conn.current_transaction->state = HttpTransaction::SENDING;
-	change_socket_epollout(epollfd, client_fd);
 }
 
 void Server::send_handler(int epollfd, int socketfd)
@@ -320,6 +318,8 @@ void Server::send_handler(int epollfd, int socketfd)
 		return ;
 	Connection &curr_connection = active_connections.at(socketfd);
 	if (curr_connection.current_transaction == NULL)
+		return ;
+	if (curr_connection.current_transaction->state != HttpTransaction::SENDING)
 		return ;
 	curr_connection.update_last_activity();
 	curr_connection.send_response();
@@ -334,7 +334,6 @@ void Server::send_handler(int epollfd, int socketfd)
 		curr_connection.current_transaction->request.clean_body_file();
 		delete curr_connection.current_transaction;
 		curr_connection.current_transaction = NULL;
-		change_socket_epollin(epollfd, socketfd);
 	}
 	else if (curr_connection.current_transaction->state ==
 		HttpTransaction::SENDING_ERROR)
@@ -538,8 +537,7 @@ void Server::check_cgi_timeouts(int epollfd) {
 					
 					// 2. Send 504 Gateway Timeout
 					conn.current_transaction->build_error_response(504);
-					change_socket_epollout(epollfd, client_fd);
-					
+
 					// 3. Clean pipe
 					clean_cgi_fd(epollfd, cgifd);
 					

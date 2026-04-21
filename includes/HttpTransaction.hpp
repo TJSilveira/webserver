@@ -70,10 +70,10 @@ public:
 	};
 
 	void parse(const std::string &raw, int socketfd);
-	void process_request(int epollfd, int curr_socket);
+	void process_request(int curr_socket);
 	void normalize_uri();
 	void resolve_resource();
-	void prepare_response(int epollfd, int curr_socket);
+	void prepare_response();
 	void prepare_response_get();
 	void prepare_response_post();
 	void prepare_response_delete(struct stat &s);
