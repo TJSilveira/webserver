@@ -116,15 +116,3 @@ void	remove_socket_epoll(int epollfd, int conn_sock)
 	}
 }
 
-void drain_socket(int curr_socket)
-{
-	char buffer[4096];
-	while (true){
-		ssize_t size = recv(curr_socket, &buffer[0], 4096, 0);
-
-		if (size > 0)
-			continue;
-		else
-			break;
-	}
-}
