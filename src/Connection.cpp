@@ -116,9 +116,15 @@ void Connection::send_response()
 	{
 		response._bytes_sent += current_sent_bytes;
 	}
+	else if (current_sent_bytes == 0)
+	{
+		logger(ERROR, "Send returned 0: peer closed", std::cerr);
+		current_transaction->assign_state(HttpTransaction::SENDING_ERROR);
+		return ;
+	}
 	else
 	{
-		logger(ERROR, "Send error", std::cerr);
+		logger(ERROR, "Send returned -1", std::cerr);
 		current_transaction->assign_state(HttpTransaction::SENDING_ERROR);
 		return ;
 	}

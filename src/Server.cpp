@@ -289,6 +289,14 @@ void Server::cgi_read_handler(int epollfd, int cgifd)
 		return ;
 	}
 	clean_cgi_fd(epollfd, cgifd);
+	if (n < 0)
+	{
+		logger(ERROR, "CGI pipe read returned -1", std::cerr);
+		kill(conn.current_transaction->cgi_info.pid, SIGKILL);
+		waitpid(conn.current_transaction->cgi_info.pid, NULL, 0);
+		conn.current_transaction->build_error_response(500);
+		return;
+	}
 	if (waitpid(conn.current_transaction->cgi_info.pid, &status, WNOHANG) > 0)
 	{
 		if (WIFEXITED(status) && WEXITSTATUS(status) > 0)
