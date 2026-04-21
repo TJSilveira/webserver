@@ -510,15 +510,6 @@ std::ostream &operator<<(std::ostream &os, const Server &s)
 	return (os);
 }
 
-void Server::print_req_resp(const Connection &curr_connection)
-{
-	std::cout << "==== THIS IS THE REQUEST ====\n";
-	std::cout << curr_connection.current_transaction->request;
-	std::cout << "==== END OF THE REQUEST ====\n";
-	std::cout << "==== THIS IS THE response ====\n";
-	std::cout << curr_connection.current_transaction->response;
-	std::cout << "\n==== END OF THE response ====\n";
-}
 
 void Server::check_cgi_timeouts(int epollfd) {
 	struct timeval now;

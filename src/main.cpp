@@ -56,7 +56,6 @@ int	main(int argc, char *argv[])
 		signal(SIGINT, sig_handler);
 		signal(SIGTERM, sig_handler);
 		Server main_server(parser.server);
-		std::cout << main_server;
 		main_server.init();
 		main_server.run_server();
 	}

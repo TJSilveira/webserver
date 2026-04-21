@@ -51,8 +51,6 @@ public:
 	void send_handler(int epollfd, int socketfd);
 	void cgi_read_handler(int epollfd, int cgifd);
 
-	void print_req_resp(const Connection &curr_connection);
-
 	static std::vector<std::string> directives;
 	static std::vector<std::string> context;
 

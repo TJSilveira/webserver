@@ -409,7 +409,6 @@ void HttpTransaction::process_request(int curr_socket)
 				if (file_name.find_last_of('/') != std::string::npos)
 					file_name = file_name.substr(file_name.find_last_of('/') + 1);
 				request.final_request_path = location->alias + file_name;
-				std::cout << "Alias final_request_path: " << request.final_request_path << std::endl;
 				resolve_resource();
 				prepare_response();
 				return;
@@ -445,10 +444,7 @@ void HttpTransaction::process_request(int curr_socket)
 		build_error_response(413);
 	}
 	else
-	{
-		std::cout << "In the last else of process_request\n";
 		build_error_response(500);
-	}
 }
 
 void HttpTransaction::resolve_resource()
@@ -602,10 +598,7 @@ void HttpTransaction::prepare_response_delete(struct stat &s)
 	if (unlink(request.final_request_path.c_str()) == 0)
 		build_bodyless_response(204);
 	else
-	{
-		std::cout << "In prepare response delete\n";
 		build_error_response(500);
-	}
 }
 
 void HttpTransaction::prepare_response_cgi(int curr_socket)
@@ -621,7 +614,6 @@ void HttpTransaction::prepare_response_cgi(int curr_socket)
 
 	if (cgi_info.is_started == false)
 	{
-		std::cout << "In prepare response cgi\n";
 		request.clean_body_file();
 		build_error_response(500);
 	}
@@ -639,7 +631,6 @@ void HttpTransaction::build_response_get_resource()
 			response.set_body(build_autoindex_string(request.final_request_path));
 			if (response.get_body().size() == 0)
 			{
-				std::cout << "In prepare response get resource\n";
 				build_error_response(500);
 				return ;
 			}
@@ -670,7 +661,6 @@ void HttpTransaction::build_response_get_resource()
 
 void HttpTransaction::build_error_response(int error_code)
 {
-	std::cout << "in build error response\n";
 	response.set_status(error_code);
 	response.set_body(generate_error_page(error_code));
 	response.set_head_method(request.method == "HEAD");
