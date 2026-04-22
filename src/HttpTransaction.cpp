@@ -485,7 +485,7 @@ void HttpTransaction::resolve_resource()
 				for (size_t i = 0; i < location->index.size(); i++)
 				{
 					std::string index_path = request.final_request_path + location->index.at(i);
-					if (access(index_path.c_str(), W_OK) == 0)
+					if (access(index_path.c_str(), R_OK) == 0)
 					{
 						request.final_request_path = index_path;
 					}
@@ -503,7 +503,7 @@ void HttpTransaction::resolve_resource()
 				for (size_t i = 0; i < vir_server->index.size(); i++)
 				{
 					std::string index_path = request.final_request_path + vir_server->index.at(i);
-					if (access(index_path.c_str(), W_OK) == 0)
+					if (access(index_path.c_str(), R_OK) == 0)
 					{
 						request.final_request_path = index_path;
 					}
@@ -559,9 +559,7 @@ void HttpTransaction::prepare_response()
 
 	if (stat(request.final_request_path.c_str(), &s) == 0)
 	{
-		if (access(request.final_request_path.c_str(), W_OK) != 0)
-			build_error_response(403);
-		else if(request.method == "GET")
+		if (request.method == "GET")
 			prepare_response_get();
 		else if (request.method == "POST")
 			prepare_response_post();
@@ -578,6 +576,12 @@ void HttpTransaction::prepare_response()
 
 void HttpTransaction::prepare_response_get()
 {
+	if (!is_directory &&
+		access(request.final_request_path.c_str(), R_OK) != 0)
+	{
+		build_error_response(403);
+		return;
+	}
 	build_response_get_resource();
 }
 
@@ -588,15 +592,28 @@ void HttpTransaction::prepare_response_post()
 
 void HttpTransaction::prepare_response_delete(struct stat &s)
 {
-	if (access(request.final_request_path.c_str(), W_OK) != 0 ||
-		S_ISDIR(s.st_mode))
+	if (S_ISDIR(s.st_mode))
 	{
 		build_error_response(403);
 		return;
 	}
 
-	if (unlink(request.final_request_path.c_str()) == 0)
+	const std::string &p = request.final_request_path;
+	std::string::size_type slash = p.find_last_of('/');
+	std::string parent = (slash == std::string::npos) ? "." : p.substr(0, slash);
+	if (parent.empty())
+		parent = "/";
+
+	if (access(parent.c_str(), W_OK | X_OK) != 0)
+	{
+		build_error_response(403);
+		return;
+	}
+
+	if (unlink(p.c_str()) == 0)
 		build_bodyless_response(204);
+	else if (errno == EACCES || errno == EPERM)
+		build_error_response(403);
 	else
 		build_error_response(500);
 }
