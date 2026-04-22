@@ -6,7 +6,7 @@
 /*   By: amoiseik <amoiseik@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 12:23:47 by tsilveir          #+#    #+#             */
-/*   Updated: 2026/03/03 18:34:24 by amoiseik         ###   ########.fr       */
+/*   Updated: 2026/04/22 13:50:48 by amoiseik         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -543,6 +543,17 @@ void Server::check_cgi_timeouts(int epollfd) {
 					continue;
 				}
 			}
+		} else {
+			// Safety fallback: client is gone, but entry still exists in the map
+			logger(WARNING, "Found orphaned CGI pipe fd=" + ft_int_to_string(cgifd) + " for missing client", std::cerr);
+
+			// 1. Close the pipe and remove it from epoll
+			clean_cgi_fd(epollfd, cgifd);
+
+			// 2. Erase from the map and reset iterator to avoid invalid access
+			cgi_output_map.erase(it);
+			it = cgi_output_map.begin();
+			continue;
 		}
 		++it;
 	}
